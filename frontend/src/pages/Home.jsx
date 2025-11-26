@@ -1,14 +1,29 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 function Home() {
     const [schools, setSchools] = useState([]);
+    const [meta, setMeta] = useState({ totalPages: 1, currentPage: 1 });
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const currentPage = parseInt(searchParams.get('page')) || 1;
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/schools')
+        fetch(`http://localhost:3000/api/schools?page=${currentPage}&limit=10`)
             .then(res => res.json())
-            .then(data => setSchools(data))
+            .then(data => {
+                setSchools(data.data);
+                setMeta(data.meta);
+            })
             .catch(err => console.error(err));
-    }, []);
+    }, [currentPage]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= meta.totalPages) {
+            setSearchParams({ page: newPage });
+            window.scrollTo(0, 0);
+        }
+    };
 
     const renderStars = (rating) => {
         const stars = Math.round(rating);
@@ -18,6 +33,7 @@ function Home() {
     return (
         <div>
             <h1>Découvrez nos écoles partenaires</h1>
+            
             <div className="school-grid">
                 {schools.map(school => {
                     const avgRating = Number(school.average_rating);
@@ -59,7 +75,34 @@ function Home() {
                     );
                 })}
             </div>
-            {schools.length === 0 && <p>Aucune école inscrite pour le moment.</p>}
+
+            {schools.length === 0 && (
+                <p style={{ marginTop: '20px' }}>Aucune école trouvée pour cette page.</p>
+            )}
+
+            {meta.totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '30px', paddingBottom: '20px' }}>
+                    <button 
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    >
+                        &lt; Précédent
+                    </button>
+
+                    <span style={{ fontSize: '1.1em' }}>
+                        Page <strong>{currentPage}</strong> sur {meta.totalPages}
+                    </span>
+
+                    <button 
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === meta.totalPages}
+                        style={{ opacity: currentPage === meta.totalPages ? 0.5 : 1, cursor: currentPage === meta.totalPages ? 'not-allowed' : 'pointer' }}
+                    >
+                        Suivant &gt;
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

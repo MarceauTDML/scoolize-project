@@ -3,6 +3,10 @@ const router = express.Router();
 const db = require('../config/db');
 
 router.get('/', async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const offset = (page - 1) * limit;
+
     try {
         const query = `
             SELECT 
@@ -15,10 +19,31 @@ router.get('/', async (req, res) => {
             LEFT JOIN ratings ON schools.id = ratings.school_id
             WHERE schools.status = 'approved'
             GROUP BY schools.id
+            LIMIT ? OFFSET ?
         `;
         
-        const [schools] = await db.execute(query);
-        res.status(200).json(schools);
+        const countQuery = `
+            SELECT COUNT(*) as total 
+            FROM schools 
+            WHERE status = 'approved'
+        `;
+
+        const [schools] = await db.execute(query, [limit.toString(), offset.toString()]);
+        const [countResult] = await db.execute(countQuery);
+        
+        const totalSchools = countResult[0].total;
+        const totalPages = Math.ceil(totalSchools / limit);
+
+        res.status(200).json({
+            data: schools,
+            meta: {
+                totalSchools,
+                totalPages,
+                currentPage: page,
+                itemsPerPage: limit
+            }
+        });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur serveur.' });
