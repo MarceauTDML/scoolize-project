@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 
 function Home() {
     const [schools, setSchools] = useState([]);
@@ -40,9 +40,13 @@ function Home() {
                     const count = school.rating_count;
 
                     return (
-                        <div key={school.id} className="school-card">
+                        <div key={school.id} className="school-card" style={{display: 'flex', flexDirection: 'column'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                                <h2 style={{marginTop: 0}}>{school.name}</h2>
+                                <h2 style={{marginTop: 0}}>
+                                    <Link to={`/school/${school.id}`} style={{color: 'inherit', textDecoration: 'none'}}>
+                                        {school.name}
+                                    </Link>
+                                </h2>
                                 {count > 0 ? (
                                     <div style={{textAlign: 'right'}}>
                                         <span style={{fontSize: '1.2em', fontWeight: 'bold', color: '#FFD700'}}>
@@ -61,16 +65,22 @@ function Home() {
                             <p style={{fontStyle: 'italic', color: '#aaa', marginTop: '5px'}}>📍 {school.address}</p>
                             <p>{school.description}</p>
                             
-                            {school.website && (
-                                <a 
-                                    href={school.website} 
-                                    target="_blank" 
-                                    rel="noreferrer"
-                                    style={{display: 'inline-block', marginTop: '10px'}}
-                                >
-                                    Visiter le site web
-                                </a>
-                            )}
+                            <div style={{marginTop: 'auto', paddingTop: '20px', display: 'flex', gap: '10px'}}>
+                                <Link to={`/school/${school.id}`} style={{textDecoration: 'none', fontWeight: 'bold', color: '#646cff'}}>
+                                    Voir la fiche &rarr;
+                                </Link>
+                                
+                                {school.website && (
+                                    <a 
+                                        href={school.website} 
+                                        target="_blank" 
+                                        rel="noreferrer"
+                                        style={{marginLeft: 'auto', fontSize: '0.9em'}}
+                                    >
+                                        Site web ↗
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     );
                 })}

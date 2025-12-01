@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import SchoolDashboard from './pages/SchoolDashboard';
+import SchoolDetails from './pages/SchoolDetails';
+
 import './App.css';
 
 function App() {
@@ -49,6 +51,7 @@ function App() {
       <main className="container">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/school/:id" element={<SchoolDetails />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<AdminDashboard />} />
