@@ -1,26 +1,25 @@
 const FormationCard = ({ formation, onClick }) => {
-  const { title, description, price, duration, image } = formation;
+  const { id, name, description, city, logo_url } = formation;
 
   return (
     <div style={styles.card}>
       <img
-        src={image || "https://via.placeholder.com/300x200?text=Cours"}
-        alt={title}
+        src={logo_url || "https://via.placeholder.com/300x200?text=Ecole"}
+        alt={name}
         style={styles.image}
       />
 
       <div style={styles.content}>
-        <h3 style={styles.title}>{title}</h3>
+        <h3 style={styles.title}>{name}</h3>
         <p style={styles.description}>{description}</p>
 
         <div style={styles.footer}>
           <div style={styles.meta}>
-            <span>⏱ {duration}</span>
-            <span style={styles.price}>{price} €</span>
+            <span>📍 {city || "Ville non précisée"}</span>
           </div>
 
-          <button style={styles.button} onClick={() => onClick(formation.id)}>
-            Voir le cours
+          <button style={styles.button} onClick={() => onClick(id)}>
+            Voir l'école
           </button>
         </div>
       </div>
@@ -74,12 +73,6 @@ const styles = {
     flexDirection: "column",
     fontSize: "0.85rem",
     color: "#555",
-  },
-  price: {
-    fontWeight: "bold",
-    fontSize: "1rem",
-    color: "#2c3e50",
-    marginTop: "4px",
   },
   button: {
     backgroundColor: "#007bff",

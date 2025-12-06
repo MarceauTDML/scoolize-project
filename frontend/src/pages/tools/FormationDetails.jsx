@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Loader from "../../components/Loader";
+import api from "../../services/api";
 
 const FormationDetails = () => {
   const { id } = useParams();
-  const [formation, setFormation] = useState(null);
+  const [school, setSchool] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -12,50 +13,8 @@ const FormationDetails = () => {
     const fetchDetails = async () => {
       try {
         setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        const mockData = {
-          id: id,
-          title: "Master Data Science & IA",
-          school: "Tech Institute Paris",
-          price: 8500,
-          duration: "2 ans",
-          location: "Paris (75)",
-          description:
-            "Devenez un expert de la donnée. Ce master forme aux technologies de pointe en Big Data, Machine Learning et Intelligence Artificielle. Vous apprendrez à collecter, traiter et valoriser les données pour aider les entreprises à prendre des décisions stratégiques.",
-          program: [
-            "Semestre 1 : Bases de données SQL/NoSQL & Python",
-            "Semestre 2 : Machine Learning & Statistiques avancées",
-            "Semestre 3 : Deep Learning, NLP & Computer Vision",
-            "Semestre 4 : Projet de fin d'études & Stage (6 mois)",
-          ],
-          stats: {
-            employmentRate: 95,
-            avgSalary: 42000,
-            satisfaction: 4.8,
-          },
-          reviews: [
-            {
-              user: "Thomas A.",
-              rating: 5,
-              text: "Excellente formation, profs très compétents.",
-            },
-            {
-              user: "Sarah L.",
-              rating: 4,
-              text: "Rythme intense mais ça vaut le coup.",
-            },
-            {
-              user: "Karim B.",
-              rating: 5,
-              text: "J'ai trouvé un CDI avant même la fin du stage.",
-            },
-          ],
-          image:
-            "https://placehold.co/1200x400/007bff/ffffff?text=Data+Science",
-        };
-
-        setFormation(mockData);
+        const { data } = await api.get(`/school/${id}`);
+        setSchool(data);
       } catch (error) {
         console.error(error);
       } finally {
@@ -67,14 +26,23 @@ const FormationDetails = () => {
   }, [id]);
 
   if (loading) return <Loader />;
-  if (!formation) return <div style={styles.error}>Formation introuvable.</div>;
+  if (!school)
+    return <div style={styles.error}>Établissement introuvable.</div>;
 
   return (
     <div style={styles.container}>
-      <div style={{ ...styles.hero, backgroundImage: `url(${formation.image})` }}>
+      <div
+        style={{
+          ...styles.hero,
+          backgroundImage: `url(${
+            school.image_url ||
+            "https://via.placeholder.com/1200x400?text=Ecole"
+          })`,
+        }}
+      >
         <div style={styles.heroOverlay}>
-          <h1 style={styles.heroTitle}>{formation.title}</h1>
-          <p style={styles.heroSchool}>{formation.school}</p>
+          <h1 style={styles.heroTitle}>{school.name}</h1>
+          <p style={styles.heroSchool}>{school.city}</p>
         </div>
       </div>
 
@@ -88,78 +56,57 @@ const FormationDetails = () => {
               Présentation
             </button>
             <button
-              style={activeTab === "program" ? styles.activeTab : styles.tab}
-              onClick={() => setActiveTab("program")}
+              style={activeTab === "contact" ? styles.activeTab : styles.tab}
+              onClick={() => setActiveTab("contact")}
             >
-              Programme
-            </button>
-            <button
-              style={activeTab === "reviews" ? styles.activeTab : styles.tab}
-              onClick={() => setActiveTab("reviews")}
-            >
-              Avis ({formation.reviews.length})
+              Contact & Infos
             </button>
           </div>
 
           <div style={styles.tabContent}>
             {activeTab === "overview" && (
               <div>
-                <h3 style={styles.subTitle}>À propos de la formation</h3>
-                <p style={styles.text}>{formation.description}</p>
-
-                <h3 style={styles.subTitle}>Chiffres Clés</h3>
-                <div style={styles.statsGrid}>
-                  <div style={styles.statBox}>
-                    <span style={styles.statNumber}>
-                      {formation.stats.employmentRate}%
-                    </span>
-                    <span style={styles.statLabel}>Taux d'emploi (6 mois)</span>
-                  </div>
-                  <div style={styles.statBox}>
-                    <span style={styles.statNumber}>
-                      {formation.stats.avgSalary} €
-                    </span>
-                    <span style={styles.statLabel}>Salaire moyen sortie</span>
-                  </div>
-                  <div style={styles.statBox}>
-                    <span style={styles.statNumber}>
-                      ⭐ {formation.stats.satisfaction}/5
-                    </span>
-                    <span style={styles.statLabel}>Satisfaction anciens</span>
-                  </div>
-                </div>
+                <h3 style={styles.subTitle}>À propos de l'établissement</h3>
+                <p style={styles.text}>
+                  {school.description ||
+                    "Aucune description disponible pour cet établissement."}
+                </p>
               </div>
             )}
 
-            {activeTab === "program" && (
+            {activeTab === "contact" && (
               <div>
-                <h3 style={styles.subTitle}>Le cursus détaillé</h3>
-                <ul style={styles.programList}>
-                  {formation.program.map((item, index) => (
-                    <li key={index} style={styles.programItem}>
-                      <span style={styles.checkIcon}>✓</span> {item}
+                <h3 style={styles.subTitle}>Coordonnées</h3>
+                <ul style={styles.infoList}>
+                  {school.address && (
+                    <li style={styles.infoItem}>
+                      <strong>Adresse :</strong> {school.address},{" "}
+                      {school.zip_code} {school.city}
                     </li>
-                  ))}
+                  )}
+                  {school.website_url && (
+                    <li style={styles.infoItem}>
+                      <strong>Site web :</strong>{" "}
+                      <a
+                        href={school.website_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {school.website_url}
+                      </a>
+                    </li>
+                  )}
+                  {school.contact_email && (
+                    <li style={styles.infoItem}>
+                      <strong>Email :</strong> {school.contact_email}
+                    </li>
+                  )}
+                  {school.phone && (
+                    <li style={styles.infoItem}>
+                      <strong>Téléphone :</strong> {school.phone}
+                    </li>
+                  )}
                 </ul>
-              </div>
-            )}
-
-            {activeTab === "reviews" && (
-              <div>
-                <h3 style={styles.subTitle}>Ce qu'en pensent les étudiants</h3>
-                <div style={styles.reviewsList}>
-                  {formation.reviews.map((review, index) => (
-                    <div key={index} style={styles.reviewCard}>
-                      <div style={styles.reviewHeader}>
-                        <strong>{review.user}</strong>
-                        <span style={styles.stars}>
-                          {"★".repeat(review.rating)}
-                        </span>
-                      </div>
-                      <p style={styles.reviewText}>"{review.text}"</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>
@@ -167,23 +114,14 @@ const FormationDetails = () => {
 
         <aside style={styles.sidebar}>
           <div style={styles.stickyCard}>
-            <h3 style={styles.cardTitle}>Informations Pratiques</h3>
+            <h3 style={styles.cardTitle}>Informations Clés</h3>
             <div style={styles.infoRow}>
-              <span>📍 Lieu :</span>
-              <strong>{formation.location}</strong>
-            </div>
-            <div style={styles.infoRow}>
-              <span>⏱ Durée :</span>
-              <strong>{formation.duration}</strong>
-            </div>
-            <div style={styles.infoRow}>
-              <span>💰 Frais :</span>
-              <strong>{formation.price} € / an</strong>
+              <span>📍 Ville :</span>
+              <strong>{school.city}</strong>
             </div>
 
             <div style={styles.separator}></div>
 
-            <button style={styles.applyBtn}>Candidater maintenant</button>
             <button style={styles.favBtn}>❤️ Ajouter aux favoris</button>
 
             <div style={styles.helpText}>
@@ -276,64 +214,14 @@ const styles = {
     color: "#444",
     marginBottom: "30px",
   },
-  statsGrid: {
-    display: "flex",
-    gap: "20px",
-    marginBottom: "30px",
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-    padding: "20px",
-    borderRadius: "8px",
-    textAlign: "center",
-    border: "1px solid #e9ecef",
-  },
-  statNumber: {
-    display: "block",
-    fontSize: "1.5rem",
-    fontWeight: "bold",
-    color: "#007bff",
-    marginBottom: "5px",
-  },
-  statLabel: {
-    fontSize: "0.9rem",
-    color: "#666",
-  },
-  programList: {
+  infoList: {
     listStyle: "none",
     padding: 0,
   },
-  programItem: {
-    padding: "15px",
+  infoItem: {
+    padding: "10px 0",
     borderBottom: "1px solid #eee",
-    display: "flex",
-    alignItems: "center",
-  },
-  checkIcon: {
-    color: "#28a745",
-    marginRight: "10px",
-    fontWeight: "bold",
-  },
-  reviewCard: {
-    backgroundColor: "#fff",
-    border: "1px solid #eee",
-    padding: "15px",
-    borderRadius: "8px",
-    marginBottom: "15px",
-  },
-  reviewHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "10px",
-  },
-  stars: {
-    color: "#ffc107",
-  },
-  reviewText: {
-    fontStyle: "italic",
     color: "#555",
-    margin: 0,
   },
   stickyCard: {
     position: "sticky",
@@ -361,18 +249,6 @@ const styles = {
     height: "1px",
     backgroundColor: "#ddd",
     margin: "20px 0",
-  },
-  applyBtn: {
-    width: "100%",
-    padding: "15px",
-    backgroundColor: "#28a745",
-    color: "#fff",
-    border: "none",
-    borderRadius: "5px",
-    fontSize: "1.1rem",
-    fontWeight: "bold",
-    cursor: "pointer",
-    marginBottom: "10px",
   },
   favBtn: {
     width: "100%",

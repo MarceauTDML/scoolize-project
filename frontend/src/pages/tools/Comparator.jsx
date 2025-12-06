@@ -1,67 +1,24 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Loader from "../../components/Loader";
+import api from "../../services/api";
 
 const Comparator = () => {
-  const [allFormations, setAllFormations] = useState([]);
-  const [selectedFormations, setSelectedFormations] = useState([]);
+  const [allSchools, setAllSchools] = useState([]);
+  const [selectedSchools, setSelectedSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSchools = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        const mockData = [
-          {
-            id: 1,
-            title: "Master Data Science",
-            school: "Tech Institute Paris",
-            price: 8500,
-            duration: "2 ans",
-            location: "Paris",
-            employment: 95,
-            salary: 42000,
-            image: "https://placehold.co/100x100/007bff/ffffff?text=Data",
-          },
-          {
-            id: 2,
-            title: "Bachelor Marketing Digital",
-            school: "Digital Campus Lyon",
-            price: 6500,
-            duration: "3 ans",
-            location: "Lyon",
-            employment: 88,
-            salary: 35000,
-            image: "https://placehold.co/100x100/e67e22/ffffff?text=Mktg",
-          },
-          {
-            id: 3,
-            title: "MBA International Business",
-            school: "Business School Bordeaux",
-            price: 12000,
-            duration: "18 mois",
-            location: "Bordeaux",
-            employment: 92,
-            salary: 45000,
-            image: "https://placehold.co/100x100/27ae60/ffffff?text=MBA",
-          },
-          {
-            id: 4,
-            title: "Bootcamp Fullstack JS",
-            school: "Ironhack",
-            price: 7500,
-            duration: "9 semaines",
-            location: "Remote",
-            employment: 90,
-            salary: 38000,
-            image: "https://placehold.co/100x100/8e44ad/ffffff?text=Code",
-          },
-        ];
-
-        setAllFormations(mockData);
-        setSelectedFormations([mockData[0], mockData[1]]);
+        const { data } = await api.get("/school/list");
+        setAllSchools(data);
+        if (data.length >= 2) {
+          setSelectedSchools([data[0], data[1]]);
+        } else {
+          setSelectedSchools(data);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -69,30 +26,25 @@ const Comparator = () => {
       }
     };
 
-    fetchData();
+    fetchSchools();
   }, []);
 
   const handleAdd = () => {
     if (!selectedId) return;
 
-    const formationToAdd = allFormations.find(
-      (f) => f.id === parseInt(selectedId)
-    );
-    if (
-      formationToAdd &&
-      !selectedFormations.find((f) => f.id === formationToAdd.id)
-    ) {
-      if (selectedFormations.length >= 3) {
-        alert("Vous ne pouvez comparer que 3 formations maximum à la fois.");
+    const schoolToAdd = allSchools.find((s) => s.id === parseInt(selectedId));
+    if (schoolToAdd && !selectedSchools.find((s) => s.id === schoolToAdd.id)) {
+      if (selectedSchools.length >= 3) {
+        alert("Vous ne pouvez comparer que 3 établissements maximum.");
         return;
       }
-      setSelectedFormations([...selectedFormations, formationToAdd]);
+      setSelectedSchools([...selectedSchools, schoolToAdd]);
       setSelectedId("");
     }
   };
 
   const handleRemove = (id) => {
-    setSelectedFormations((prev) => prev.filter((f) => f.id !== id));
+    setSelectedSchools((prev) => prev.filter((s) => s.id !== id));
   };
 
   if (loading) return <Loader />;
@@ -100,10 +52,8 @@ const Comparator = () => {
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <h2 style={styles.title}>Comparateur de Formations</h2>
-        <p style={styles.subtitle}>
-          Comparez les prix, les débouchés et les programmes côte à côte.
-        </p>
+        <h2 style={styles.title}>Comparateur d'Écoles</h2>
+        <p style={styles.subtitle}>Comparez les établissements côte à côte.</p>
 
         <div style={styles.controls}>
           <select
@@ -111,14 +61,14 @@ const Comparator = () => {
             onChange={(e) => setSelectedId(e.target.value)}
             style={styles.select}
           >
-            <option value="">-- Ajouter une formation à comparer --</option>
-            {allFormations.map((f) => (
+            <option value="">-- Ajouter une école --</option>
+            {allSchools.map((s) => (
               <option
-                key={f.id}
-                value={f.id}
-                disabled={selectedFormations.find((sf) => sf.id === f.id)}
+                key={s.id}
+                value={s.id}
+                disabled={selectedSchools.find((sel) => sel.id === s.id)}
               >
-                {f.title} - {f.school}
+                {s.name}
               </option>
             ))}
           </select>
@@ -132,9 +82,9 @@ const Comparator = () => {
         </div>
       </header>
 
-      {selectedFormations.length === 0 ? (
+      {selectedSchools.length === 0 ? (
         <div style={styles.emptyState}>
-          Sélectionnez des formations ci-dessus pour commencer la comparaison.
+          Sélectionnez des écoles ci-dessus pour commencer la comparaison.
         </div>
       ) : (
         <div style={styles.tableWrapper}>
@@ -142,18 +92,25 @@ const Comparator = () => {
             <thead>
               <tr>
                 <th style={styles.firstCol}>Critères</th>
-                {selectedFormations.map((f) => (
-                  <th key={f.id} style={styles.th}>
+                {selectedSchools.map((s) => (
+                  <th key={s.id} style={styles.th}>
                     <div style={styles.headerContent}>
                       <button
-                        onClick={() => handleRemove(f.id)}
+                        onClick={() => handleRemove(s.id)}
                         style={styles.removeBtn}
                       >
                         ×
                       </button>
-                      <img src={f.image} alt={f.title} style={styles.img} />
-                      <Link to={`/formation/${f.id}`} style={styles.link}>
-                        {f.title}
+                      <img
+                        src={
+                          s.logo_url ||
+                          "https://via.placeholder.com/80x80?text=Logo"
+                        }
+                        alt={s.name}
+                        style={styles.img}
+                      />
+                      <Link to={`/formation/${s.id}`} style={styles.link}>
+                        {s.name}
                       </Link>
                     </div>
                   </th>
@@ -162,67 +119,63 @@ const Comparator = () => {
             </thead>
             <tbody>
               <tr style={styles.tr}>
-                <td style={styles.firstColLabel}>École</td>
-                {selectedFormations.map((f) => (
-                  <td key={f.id} style={styles.td}>
-                    {f.school}
+                <td style={styles.firstColLabel}>Ville</td>
+                {selectedSchools.map((s) => (
+                  <td key={s.id} style={styles.td}>
+                    {s.city}
                   </td>
                 ))}
               </tr>
               <tr style={styles.tr}>
-                <td style={styles.firstColLabel}>Prix</td>
-                {selectedFormations.map((f) => (
-                  <td key={f.id} style={styles.tdPrice}>
-                    {f.price} €
+                <td style={styles.firstColLabel}>Adresse</td>
+                {selectedSchools.map((s) => (
+                  <td key={s.id} style={styles.td}>
+                    {s.address || "-"}
                   </td>
                 ))}
               </tr>
               <tr style={styles.tr}>
-                <td style={styles.firstColLabel}>Durée</td>
-                {selectedFormations.map((f) => (
-                  <td key={f.id} style={styles.td}>
-                    {f.duration}
+                <td style={styles.firstColLabel}>Site Web</td>
+                {selectedSchools.map((s) => (
+                  <td key={s.id} style={styles.td}>
+                    {s.website_url ? (
+                      <a
+                        href={s.website_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={styles.linkSmall}
+                      >
+                        Visiter
+                      </a>
+                    ) : (
+                      "-"
+                    )}
                   </td>
                 ))}
               </tr>
               <tr style={styles.tr}>
-                <td style={styles.firstColLabel}>Lieu</td>
-                {selectedFormations.map((f) => (
-                  <td key={f.id} style={styles.td}>
-                    {f.location}
+                <td style={styles.firstColLabel}>Email</td>
+                {selectedSchools.map((s) => (
+                  <td key={s.id} style={styles.td}>
+                    {s.contact_email || "-"}
                   </td>
                 ))}
               </tr>
               <tr style={styles.tr}>
-                <td style={styles.firstColLabel}>Taux d'emploi</td>
-                {selectedFormations.map((f) => (
-                  <td key={f.id} style={styles.td}>
-                    <span
-                      style={{
-                        ...styles.badge,
-                        backgroundColor:
-                          f.employment > 90 ? "#d4edda" : "#fff3cd",
-                        color: f.employment > 90 ? "#155724" : "#856404",
-                      }}
-                    >
-                      {f.employment}%
-                    </span>
-                  </td>
-                ))}
-              </tr>
-              <tr style={styles.tr}>
-                <td style={styles.firstColLabel}>Salaire moyen</td>
-                {selectedFormations.map((f) => (
-                  <td key={f.id} style={styles.tdBold}>
-                    {f.salary} € / an
+                <td style={styles.firstColLabel}>Téléphone</td>
+                {selectedSchools.map((s) => (
+                  <td key={s.id} style={styles.td}>
+                    {s.phone || "-"}
                   </td>
                 ))}
               </tr>
               <tr style={styles.tr}>
                 <td style={styles.firstColLabel}>Action</td>
-                {selectedFormations.map((f) => (
-                  <td key={f.id} style={styles.td}>
-                    <button style={styles.actionBtn}>Candidater</button>
+                {selectedSchools.map((s) => (
+                  <td key={s.id} style={styles.td}>
+                    <Link to={`/formation/${s.id}`} style={styles.actionBtn}>
+                      Voir la fiche
+                    </Link>
                   </td>
                 ))}
               </tr>
@@ -349,30 +302,13 @@ const styles = {
     verticalAlign: "middle",
     borderRight: "1px solid #eee",
   },
-  tdPrice: {
-    padding: "15px",
-    textAlign: "center",
-    color: "#28a745",
-    fontWeight: "bold",
-    fontSize: "1.1rem",
-    verticalAlign: "middle",
-    borderRight: "1px solid #eee",
-  },
-  tdBold: {
-    padding: "15px",
-    textAlign: "center",
-    fontWeight: "bold",
-    color: "#2c3e50",
-    verticalAlign: "middle",
-    borderRight: "1px solid #eee",
-  },
-  badge: {
-    padding: "6px 12px",
-    borderRadius: "12px",
+  linkSmall: {
+    color: "#007bff",
+    textDecoration: "none",
     fontSize: "0.9rem",
-    fontWeight: "bold",
   },
   actionBtn: {
+    display: "inline-block",
     padding: "8px 16px",
     backgroundColor: "#007bff",
     color: "#fff",
@@ -380,6 +316,7 @@ const styles = {
     borderRadius: "4px",
     cursor: "pointer",
     fontSize: "0.9rem",
+    textDecoration: "none",
   },
 };
 

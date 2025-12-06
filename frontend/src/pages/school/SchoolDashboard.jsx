@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Loader from "../../components/Loader";
+import api from "../../services/api";
 
 const SchoolDashboard = () => {
   const { user } = useAuth();
@@ -16,44 +17,31 @@ const SchoolDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        const [candidatesRes, formationsRes] = await Promise.all([
+          api.get("/school/candidates"),
+          api.get("/school/formations"),
+        ]);
+
+        const candidates = candidatesRes.data;
+        const formations = formationsRes.data;
 
         setStats({
-          totalCandidates: 142,
-          activeFormations: 8,
-          pendingReviews: 12,
+          totalCandidates: candidates.length,
+          activeFormations: formations.length,
+          pendingReviews: candidates.filter(
+            (c) => c.status === "En attente" || c.status === "Nouveau"
+          ).length,
         });
 
-        setRecentCandidates([
-          {
-            id: 1,
-            name: "Thomas D.",
-            formation: "Master Data Science",
-            date: "Aujourd'hui",
-            status: "Nouveau",
-          },
-          {
-            id: 2,
-            name: "Sarah L.",
-            formation: "Bachelor Marketing",
-            date: "Hier",
-            status: "En attente",
-          },
-          {
-            id: 3,
-            name: "Karim B.",
-            formation: "Dev Fullstack",
-            date: "04/12/2025",
-            status: "En attente",
-          },
-          {
-            id: 4,
-            name: "Julie M.",
-            formation: "Master Data Science",
-            date: "03/12/2025",
-            status: "Rejeté",
-          },
-        ]);
+        const formattedCandidates = candidates.slice(0, 5).map((c) => ({
+          id: c.application_id,
+          name: `${c.first_name} ${c.last_name}`,
+          formation: c.formation_name,
+          date: new Date(c.submitted_at).toLocaleDateString(),
+          status: c.status,
+        }));
+
+        setRecentCandidates(formattedCandidates);
       } catch (error) {
         console.error(error);
       } finally {
@@ -72,7 +60,7 @@ const SchoolDashboard = () => {
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.title}>
-          Espace Administration - {user?.name || "École"}
+          Espace Administration - {user?.profile?.name || user?.name || "École"}
         </h1>
         <p style={styles.subtitle}>
           Gérez vos formations et suivez vos recrutements.
@@ -140,10 +128,26 @@ const SchoolDashboard = () => {
                       </span>
                     </td>
                     <td style={styles.td}>
-                      <button style={styles.actionBtn}>🔍</button>
+                      <Link to="/school/candidates" style={styles.actionBtn}>
+                        🔍
+                      </Link>
                     </td>
                   </tr>
                 ))}
+                {recentCandidates.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{
+                        ...styles.td,
+                        textAlign: "center",
+                        color: "#666",
+                      }}
+                    >
+                      Aucune candidature récente.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -278,6 +282,7 @@ const styles = {
     background: "none",
     cursor: "pointer",
     fontSize: "1.1rem",
+    textDecoration: "none",
   },
   sidebar: {
     display: "flex",

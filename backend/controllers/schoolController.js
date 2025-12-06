@@ -131,11 +131,9 @@ exports.updateFormation = async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res
-        .status(403)
-        .json({
-          message: "Modification non autorisée ou formation introuvable",
-        });
+      return res.status(403).json({
+        message: "Modification non autorisée ou formation introuvable",
+      });
     }
 
     res.json({ message: "Formation mise à jour" });
@@ -263,6 +261,30 @@ exports.postNews = async (req, res) => {
     );
 
     res.status(201).json({ message: "Actualité publiée" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.listSchools = async (req, res) => {
+  try {
+    const [schools] = await db.query("SELECT * FROM schools");
+    res.json(schools);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getSchoolById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [schools] = await db.query("SELECT * FROM schools WHERE id = ?", [
+      id,
+    ]);
+    if (schools.length === 0) {
+      return res.status(404).json({ message: "École introuvable" });
+    }
+    res.json(schools[0]);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
