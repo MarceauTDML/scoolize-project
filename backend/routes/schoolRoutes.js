@@ -10,23 +10,31 @@ const {
   getCandidates,
   updateCandidateStatus,
   postNews,
+  listSchools,
+  getSchoolById,
 } = require("../controllers/schoolController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
-router.use(protect);
-router.use(authorize("school"));
+router.get("/list", listSchools);
 
-router.get("/profile", getSchoolProfile);
-router.put("/profile", updateSchoolProfile);
+router.get("/profile", protect, authorize("school"), getSchoolProfile);
+router.put("/profile", protect, authorize("school"), updateSchoolProfile);
 
-router.post("/formations", createFormation);
-router.get("/formations", getMyFormations);
-router.put("/formations/:id", updateFormation);
-router.delete("/formations/:id", deleteFormation);
+router.post("/formations", protect, authorize("school"), createFormation);
+router.get("/formations", protect, authorize("school"), getMyFormations);
+router.put("/formations/:id", protect, authorize("school"), updateFormation);
+router.delete("/formations/:id", protect, authorize("school"), deleteFormation);
 
-router.get("/candidates", getCandidates);
-router.put("/candidates/:applicationId", updateCandidateStatus);
+router.get("/candidates", protect, authorize("school"), getCandidates);
+router.put(
+  "/candidates/:applicationId",
+  protect,
+  authorize("school"),
+  updateCandidateStatus
+);
 
-router.post("/news", postNews);
+router.post("/news", protect, authorize("school"), postNews);
+
+router.get("/:id", getSchoolById);
 
 module.exports = router;

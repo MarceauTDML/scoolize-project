@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Loader from "../../components/Loader";
+import api from "../../services/api";
 
 const CandidatesList = () => {
   const [candidates, setCandidates] = useState([]);
@@ -9,60 +10,18 @@ const CandidatesList = () => {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        const { data } = await api.get("/school/candidates");
 
-        const mockData = [
-          {
-            id: 1,
-            name: "Lucas Martin",
-            formation: "Master Data Science",
-            score: 95,
-            date: "2025-03-10",
-            status: "En attente",
-          },
-          {
-            id: 2,
-            name: "Emma Bernard",
-            formation: "Bachelor Marketing",
-            score: 88,
-            date: "2025-03-09",
-            status: "Accepté",
-          },
-          {
-            id: 3,
-            name: "Jules Petit",
-            formation: "Dev Fullstack",
-            score: 45,
-            date: "2025-03-08",
-            status: "Refusé",
-          },
-          {
-            id: 4,
-            name: "Léa Dubois",
-            formation: "Master Data Science",
-            score: 72,
-            date: "2025-03-11",
-            status: "En attente",
-          },
-          {
-            id: 5,
-            name: "Hugo Leroy",
-            formation: "Bachelor Marketing",
-            score: 60,
-            date: "2025-03-05",
-            status: "En attente",
-          },
-          {
-            id: 6,
-            name: "Chloé Moreau",
-            formation: "Dev Fullstack",
-            score: 92,
-            date: "2025-03-01",
-            status: "Accepté",
-          },
-        ];
+        const formattedData = data.map((c) => ({
+          id: c.application_id,
+          name: `${c.first_name} ${c.last_name}`,
+          formation: c.formation_name,
+          score: c.last_average ? Math.round((c.last_average / 20) * 100) : 0,
+          date: new Date(c.submitted_at).toLocaleDateString(),
+          status: c.status,
+        }));
 
-        setCandidates(mockData.sort((a, b) => b.score - a.score));
+        setCandidates(formattedData.sort((a, b) => b.score - a.score));
       } catch (error) {
         console.error(error);
       } finally {
@@ -73,10 +32,16 @@ const CandidatesList = () => {
     fetchCandidates();
   }, []);
 
-  const handleStatusChange = (id, newStatus) => {
-    setCandidates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
-    );
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await api.put(`/school/candidates/${id}`, { status: newStatus });
+      setCandidates((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la mise à jour du statut.");
+    }
   };
 
   const filteredCandidates =
@@ -85,8 +50,8 @@ const CandidatesList = () => {
       : candidates.filter((c) => c.status === filter);
 
   const getScoreColor = (score) => {
-    if (score >= 90) return "#28a745";
-    if (score >= 70) return "#17a2b8";
+    if (score >= 80) return "#28a745";
+    if (score >= 60) return "#17a2b8";
     if (score >= 50) return "#ffc107";
     return "#dc3545";
   };
@@ -126,7 +91,7 @@ const CandidatesList = () => {
             <tr>
               <th style={styles.th}>Candidat</th>
               <th style={styles.th}>Formation visée</th>
-              <th style={styles.th}>Match IA</th>
+              <th style={styles.th}>Moyenne (Estimée)</th>
               <th style={styles.th}>Date</th>
               <th style={styles.th}>Statut Actuel</th>
               <th style={styles.th}>Actions</th>

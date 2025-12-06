@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Loader from "../../components/Loader";
 import { Link } from "react-router-dom";
+import api from "../../services/api";
 
 const MyCandidatures = () => {
   const [candidatures, setCandidatures] = useState([]);
@@ -9,44 +10,8 @@ const MyCandidatures = () => {
   useEffect(() => {
     const fetchCandidatures = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        const mockData = [
-          {
-            id: 1,
-            formation: "Bachelor Marketing Digital",
-            school: "Digital Campus Paris",
-            date: "2025-02-15",
-            status: "Accepté",
-            message: "Félicitations ! Votre dossier a été retenu.",
-          },
-          {
-            id: 2,
-            formation: "Master Data Science",
-            school: "Tech Institute Lyon",
-            date: "2025-02-20",
-            status: "En attente",
-            message: "Dossier en cours d'examen par le jury.",
-          },
-          {
-            id: 3,
-            formation: "Licence Pro E-Commerce",
-            school: "Université de Bordeaux",
-            date: "2025-01-10",
-            status: "Refusé",
-            message: "Nous sommes au regret de vous informer...",
-          },
-          {
-            id: 4,
-            formation: "Bootcamp Fullstack JS",
-            school: "Ironhack",
-            date: "2025-03-01",
-            status: "Entretien",
-            message: "Entretien prévu le 12/03 à 14h00.",
-          },
-        ];
-
-        setCandidatures(mockData);
+        const { data } = await api.get("/student/applications");
+        setCandidatures(data);
       } catch (error) {
         console.error(error);
       } finally {
@@ -86,9 +51,14 @@ const MyCandidatures = () => {
     }
   };
 
-  const handleWithdraw = (id) => {
+  const handleWithdraw = async (id) => {
     if (window.confirm("Voulez-vous vraiment retirer cette candidature ?")) {
-      setCandidatures((prev) => prev.filter((c) => c.id !== id));
+      try {
+        await api.delete(`/student/applications/${id}`);
+        setCandidatures((prev) => prev.filter((c) => c.id !== id));
+      } catch (error) {
+        console.error(error);
+      }
     }
   };
 
@@ -109,7 +79,7 @@ const MyCandidatures = () => {
         <div style={styles.emptyState}>
           <p>Vous n'avez aucune candidature en cours.</p>
           <Link to="/student/search" style={styles.linkButton}>
-            Rechercher une formation
+            Rechercher une école
           </Link>
         </div>
       ) : (
@@ -118,8 +88,12 @@ const MyCandidatures = () => {
             <div key={item.id} style={styles.card}>
               <div style={styles.cardHeader}>
                 <div>
-                  <h3 style={styles.formationTitle}>{item.formation}</h3>
-                  <p style={styles.schoolName}>{item.school}</p>
+                  <h3 style={styles.formationTitle}>
+                    {item.formation_name || item.formation}
+                  </h3>
+                  <p style={styles.schoolName}>
+                    {item.school_name || item.school}
+                  </p>
                 </div>
                 <span
                   style={{ ...styles.badge, ...getStatusStyle(item.status) }}
@@ -129,7 +103,12 @@ const MyCandidatures = () => {
               </div>
 
               <div style={styles.cardBody}>
-                <p style={styles.date}>Candidaté le : {item.date}</p>
+                <p style={styles.date}>
+                  Candidaté le :{" "}
+                  {new Date(
+                    item.submitted_at || item.date
+                  ).toLocaleDateString()}
+                </p>
                 {item.message && (
                   <div style={styles.messageBox}>
                     <strong>Note de l'école :</strong> {item.message}

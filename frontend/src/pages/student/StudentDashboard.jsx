@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import FormationCard from "../../components/FormationCard";
 import Loader from "../../components/Loader";
+import api from "../../services/api";
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -17,34 +18,23 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        const schoolsResponse = await api.get("/school/list");
+        setRecommendations(schoolsResponse.data.slice(0, 3));
 
-        setStats({
-          candidatures: 2,
-          unreadMessages: 1,
-          profileCompletion: 75,
-        });
+        try {
+          const profileResponse = await api.get("/student/profile");
+          const profile = profileResponse.data.personal || {};
+          const fields = Object.values(profile);
+          const filled = fields.filter((f) => f !== null && f !== "").length;
+          const completion = Math.round((filled / 8) * 100);
 
-        setRecommendations([
-          {
-            id: 101,
-            title: "Bachelor Marketing Digital",
-            description:
-              "Devenez expert en stratégie digitale et réseaux sociaux.",
-            price: 6500,
-            duration: "3 ans",
-            image: "https://placehold.co/600x400/ff9f43/ffffff?text=Marketing",
-          },
-          {
-            id: 102,
-            title: "Master Data Science",
-            description:
-              "Analysez les données pour prendre les meilleures décisions.",
-            price: 8200,
-            duration: "2 ans",
-            image: "https://placehold.co/600x400/54a0ff/ffffff?text=Data",
-          },
-        ]);
+          setStats((prev) => ({
+            ...prev,
+            profileCompletion: Math.min(completion, 100),
+          }));
+        } catch (err) {
+          console.error(err);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -103,18 +93,18 @@ const StudentDashboard = () => {
 
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
-          <h2 style={styles.sectionTitle}>Recommandé pour vous</h2>
+          <h2 style={styles.sectionTitle}>Écoles Recommandées</h2>
           <Link to="/student/search" style={styles.viewAllBtn}>
             Voir tout le catalogue
           </Link>
         </div>
 
         <div style={styles.formationsGrid}>
-          {recommendations.map((formation) => (
+          {recommendations.map((school) => (
             <FormationCard
-              key={formation.id}
-              formation={formation}
-              onClick={(id) => console.log("Click formation", id)}
+              key={school.id}
+              formation={school}
+              onClick={(id) => console.log("Click école", id)}
             />
           ))}
         </div>

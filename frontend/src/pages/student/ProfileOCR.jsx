@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Loader from "../../components/Loader";
+import api from "../../services/api";
 
 const ProfileOCR = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -21,19 +22,19 @@ const ProfileOCR = () => {
     setIsAnalyzing(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const formData = new FormData();
+      formData.append("file", selectedFile);
 
-      const mockData = {
-        maths: 14.5,
-        physique: 12.0,
-        anglais: 16.5,
-        francais: 13.0,
-        generalAvg: 14.0,
-      };
+      const { data } = await api.post("/student/ocr/analyze", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-      setExtractedData(mockData);
+      setExtractedData(data);
     } catch (error) {
-      console.error("Erreur d'analyse", error);
+      console.error(error);
+      alert("Erreur lors de l'analyse du document.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -47,9 +48,14 @@ const ProfileOCR = () => {
     }));
   };
 
-  const handleSave = () => {
-    console.log("Données sauvegardées :", extractedData);
-    setIsSaved(true);
+  const handleSave = async () => {
+    try {
+      await api.post("/student/grades", extractedData);
+      setIsSaved(true);
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de l'enregistrement des notes.");
+    }
   };
 
   return (
@@ -110,7 +116,7 @@ const ProfileOCR = () => {
                 <input
                   type="number"
                   name="maths"
-                  value={extractedData.maths}
+                  value={extractedData.maths || ""}
                   onChange={handleDataChange}
                   style={styles.input}
                 />
@@ -121,7 +127,7 @@ const ProfileOCR = () => {
                 <input
                   type="number"
                   name="physique"
-                  value={extractedData.physique}
+                  value={extractedData.physique || ""}
                   onChange={handleDataChange}
                   style={styles.input}
                 />
@@ -132,7 +138,7 @@ const ProfileOCR = () => {
                 <input
                   type="number"
                   name="anglais"
-                  value={extractedData.anglais}
+                  value={extractedData.anglais || ""}
                   onChange={handleDataChange}
                   style={styles.input}
                 />
@@ -143,7 +149,7 @@ const ProfileOCR = () => {
                 <input
                   type="number"
                   name="francais"
-                  value={extractedData.francais}
+                  value={extractedData.francais || ""}
                   onChange={handleDataChange}
                   style={styles.input}
                 />
@@ -155,7 +161,7 @@ const ProfileOCR = () => {
                 Moyenne Générale détectée :
               </span>
               <span style={styles.summaryValue}>
-                {extractedData.generalAvg} / 20
+                {extractedData.generalAvg || "-"} / 20
               </span>
             </div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Loader from "../../components/Loader";
+import api from "../../services/api";
 
 const ManageFormations = () => {
   const [formations, setFormations] = useState([]);
@@ -9,55 +10,30 @@ const ManageFormations = () => {
 
   const initialFormState = {
     id: null,
-    title: "",
-    category: "Informatique",
-    price: "",
-    duration: "",
+    name: "",
+    domain: "Informatique",
+    tuition_fees_per_year: "",
+    study_mode: "",
+    diploma_type: "",
+    city: "",
+    admission_criteria: "",
     description: "",
   };
 
   const [formData, setFormData] = useState(initialFormState);
 
+  const fetchFormations = async () => {
+    try {
+      const { data } = await api.get("/school/formations");
+      setFormations(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFormations = async () => {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        const mockData = [
-          {
-            id: 1,
-            title: "Master Data Science",
-            category: "Informatique",
-            price: 8500,
-            duration: "2 ans",
-            description: "Formation avancée en big data.",
-          },
-          {
-            id: 2,
-            title: "Bachelor Marketing Digital",
-            category: "Marketing",
-            price: 6500,
-            duration: "3 ans",
-            description: "Cursus complet webmarketing.",
-          },
-          {
-            id: 3,
-            title: "Bootcamp Cyber-Sécurité",
-            category: "Informatique",
-            price: 4000,
-            duration: "6 mois",
-            description: "Formation intensive pentesting.",
-          },
-        ];
-
-        setFormations(mockData);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFormations();
   }, []);
 
@@ -66,19 +42,21 @@ const ManageFormations = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (isEditing) {
-      setFormations((prev) =>
-        prev.map((f) => (f.id === formData.id ? formData : f))
-      );
-    } else {
-      const newFormation = { ...formData, id: Date.now() };
-      setFormations((prev) => [...prev, newFormation]);
+    try {
+      if (isEditing) {
+        await api.put(`/school/formations/${formData.id}`, formData);
+      } else {
+        await api.post("/school/formations", formData);
+      }
+      await fetchFormations();
+      resetForm();
+    } catch (error) {
+      console.error(error);
+      alert("Une erreur est survenue lors de l'enregistrement.");
     }
-
-    resetForm();
   };
 
   const handleEdit = (formation) => {
@@ -88,11 +66,17 @@ const ManageFormations = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (
       window.confirm("Êtes-vous sûr de vouloir supprimer cette formation ?")
     ) {
-      setFormations((prev) => prev.filter((f) => f.id !== id));
+      try {
+        await api.delete(`/school/formations/${id}`);
+        setFormations((prev) => prev.filter((f) => f.id !== id));
+      } catch (error) {
+        console.error(error);
+        alert("Impossible de supprimer cette formation.");
+      }
     }
   };
 
@@ -128,21 +112,21 @@ const ManageFormations = () => {
           <form onSubmit={handleSubmit} style={styles.form}>
             <div style={styles.row}>
               <div style={styles.group}>
-                <label style={styles.label}>Titre de la formation</label>
+                <label style={styles.label}>Nom de la formation</label>
                 <input
                   type="text"
-                  name="title"
-                  value={formData.title}
+                  name="name"
+                  value={formData.name}
                   onChange={handleInputChange}
                   style={styles.input}
                   required
                 />
               </div>
               <div style={styles.group}>
-                <label style={styles.label}>Catégorie</label>
+                <label style={styles.label}>Domaine</label>
                 <select
-                  name="category"
-                  value={formData.category}
+                  name="domain"
+                  value={formData.domain}
                   onChange={handleInputChange}
                   style={styles.select}
                 >
@@ -150,6 +134,8 @@ const ManageFormations = () => {
                   <option value="Marketing">Marketing</option>
                   <option value="Design">Design</option>
                   <option value="Business">Business</option>
+                  <option value="Santé">Santé</option>
+                  <option value="Ingénierie">Ingénierie</option>
                   <option value="Autre">Autre</option>
                 </select>
               </div>
@@ -157,28 +143,66 @@ const ManageFormations = () => {
 
             <div style={styles.row}>
               <div style={styles.group}>
-                <label style={styles.label}>Prix (€)</label>
+                <label style={styles.label}>Type de diplôme</label>
+                <input
+                  type="text"
+                  name="diploma_type"
+                  value={formData.diploma_type}
+                  onChange={handleInputChange}
+                  style={styles.input}
+                  placeholder="ex: Master, Licence, BTS"
+                  required
+                />
+              </div>
+              <div style={styles.group}>
+                <label style={styles.label}>Mode d'étude</label>
+                <input
+                  type="text"
+                  name="study_mode"
+                  value={formData.study_mode}
+                  onChange={handleInputChange}
+                  style={styles.input}
+                  placeholder="ex: Initial, Alternance"
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={styles.row}>
+              <div style={styles.group}>
+                <label style={styles.label}>Frais de scolarité (€/an)</label>
                 <input
                   type="number"
-                  name="price"
-                  value={formData.price}
+                  name="tuition_fees_per_year"
+                  value={formData.tuition_fees_per_year}
                   onChange={handleInputChange}
                   style={styles.input}
                   required
                 />
               </div>
               <div style={styles.group}>
-                <label style={styles.label}>Durée</label>
+                <label style={styles.label}>Ville</label>
                 <input
                   type="text"
-                  name="duration"
-                  value={formData.duration}
+                  name="city"
+                  value={formData.city}
                   onChange={handleInputChange}
                   style={styles.input}
-                  placeholder="ex: 2 ans"
                   required
                 />
               </div>
+            </div>
+
+            <div style={styles.group}>
+              <label style={styles.label}>Critères d'admission</label>
+              <input
+                type="text"
+                name="admission_criteria"
+                value={formData.admission_criteria}
+                onChange={handleInputChange}
+                style={styles.input}
+                placeholder="ex: Bac+3 validé, Dossier, Entretien"
+              />
             </div>
 
             <div style={styles.group}>
@@ -213,10 +237,10 @@ const ManageFormations = () => {
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Titre</th>
-              <th style={styles.th}>Catégorie</th>
-              <th style={styles.th}>Prix</th>
-              <th style={styles.th}>Durée</th>
+              <th style={styles.th}>Nom</th>
+              <th style={styles.th}>Domaine</th>
+              <th style={styles.th}>Diplôme</th>
+              <th style={styles.th}>Frais</th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
@@ -224,13 +248,13 @@ const ManageFormations = () => {
             {formations.map((formation) => (
               <tr key={formation.id} style={styles.tr}>
                 <td style={styles.td}>
-                  <strong>{formation.title}</strong>
+                  <strong>{formation.name}</strong>
                 </td>
                 <td style={styles.td}>
-                  <span style={styles.badge}>{formation.category}</span>
+                  <span style={styles.badge}>{formation.domain}</span>
                 </td>
-                <td style={styles.td}>{formation.price} €</td>
-                <td style={styles.td}>{formation.duration}</td>
+                <td style={styles.td}>{formation.diploma_type}</td>
+                <td style={styles.td}>{formation.tuition_fees_per_year} €</td>
                 <td style={styles.td}>
                   <button
                     onClick={() => handleEdit(formation)}
@@ -314,11 +338,13 @@ const styles = {
   row: {
     display: "flex",
     gap: "20px",
+    flexWrap: "wrap",
   },
   group: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
+    minWidth: "250px",
   },
   label: {
     marginBottom: "5px",
@@ -378,7 +404,7 @@ const styles = {
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: "600px",
+    minWidth: "700px",
   },
   th: {
     textAlign: "left",
