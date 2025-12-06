@@ -1,120 +1,122 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import FormationCard from "../components/FormationCard";
+import Loader from "../components/Loader";
 
-function Home() {
-    const [schools, setSchools] = useState([]);
-    const [meta, setMeta] = useState({ totalPages: 1, currentPage: 1 });
-    const [searchParams, setSearchParams] = useSearchParams();
+const Home = () => {
+  const [formations, setFormations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    const currentPage = parseInt(searchParams.get('page')) || 1;
+  useEffect(() => {
+    const fetchFormations = async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    useEffect(() => {
-        fetch(`http://localhost:3000/api/schools?page=${currentPage}&limit=10`)
-            .then(res => res.json())
-            .then(data => {
-                setSchools(data.data);
-                setMeta(data.meta);
-            })
-            .catch(err => console.error(err));
-    }, [currentPage]);
+        const mockData = [
+          {
+            id: 1,
+            title: "Introduction à React",
+            description:
+              "Apprenez les fondamentaux de React, les composants et le state.",
+            price: 49.99,
+            duration: "10h",
+            image: "https://placehold.co/600x400/007bff/ffffff?text=React",
+          },
+          {
+            id: 2,
+            title: "Maîtriser Node.js",
+            description: "Créez des API performantes avec Node.js et Express.",
+            price: 79.99,
+            duration: "15h",
+            image: "https://placehold.co/600x400/28a745/ffffff?text=Node.js",
+          },
+          {
+            id: 3,
+            title: "CSS Avancé & Flexbox",
+            description: "Rendez vos sites web responsives et modernes.",
+            price: 39.99,
+            duration: "8h",
+            image: "https://placehold.co/600x400/dc3545/ffffff?text=CSS",
+          },
+        ];
 
-    const handlePageChange = (newPage) => {
-        if (newPage >= 1 && newPage <= meta.totalPages) {
-            setSearchParams({ page: newPage });
-            window.scrollTo(0, 0);
-        }
+        setFormations(mockData);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const renderStars = (rating) => {
-        const stars = Math.round(rating);
-        return '⭐'.repeat(stars);
-    };
+    fetchFormations();
+  }, []);
 
-    return (
-        <div>
-            <h1>Découvrez nos écoles partenaires</h1>
-            
-            <div className="school-grid">
-                {schools.map(school => {
-                    const avgRating = Number(school.average_rating);
-                    const count = school.rating_count;
+  const handleCardClick = (id) => {
+    console.log(`Navigation vers la formation ${id}`);
+  };
 
-                    return (
-                        <div key={school.id} className="school-card" style={{display: 'flex', flexDirection: 'column'}}>
-                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                                <h2 style={{marginTop: 0}}>
-                                    <Link to={`/school/${school.id}`} style={{color: 'inherit', textDecoration: 'none'}}>
-                                        {school.name}
-                                    </Link>
-                                </h2>
-                                {count > 0 ? (
-                                    <div style={{textAlign: 'right'}}>
-                                        <span style={{fontSize: '1.2em', fontWeight: 'bold', color: '#FFD700'}}>
-                                            {avgRating.toFixed(1)}/5
-                                        </span>
-                                        <div style={{fontSize: '0.8em'}}>{renderStars(avgRating)}</div>
-                                        <small style={{color: '#888'}}>({count} avis)</small>
-                                    </div>
-                                ) : (
-                                    <span style={{fontSize: '0.8em', background: '#444', padding: '2px 6px', borderRadius: '4px'}}>
-                                        Nouveau
-                                    </span>
-                                )}
-                            </div>
-                            
-                            <p style={{fontStyle: 'italic', color: '#aaa', marginTop: '5px'}}>📍 {school.address}</p>
-                            <p>{school.description}</p>
-                            
-                            <div style={{marginTop: 'auto', paddingTop: '20px', display: 'flex', gap: '10px'}}>
-                                <Link to={`/school/${school.id}`} style={{textDecoration: 'none', fontWeight: 'bold', color: '#646cff'}}>
-                                    Voir la fiche &rarr;
-                                </Link>
-                                
-                                {school.website && (
-                                    <a 
-                                        href={school.website} 
-                                        target="_blank" 
-                                        rel="noreferrer"
-                                        style={{marginLeft: 'auto', fontSize: '0.9em'}}
-                                    >
-                                        Site web ↗
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+  if (loading) {
+    return <Loader />;
+  }
 
-            {schools.length === 0 && (
-                <p style={{ marginTop: '20px' }}>Aucune école trouvée pour cette page.</p>
-            )}
+  return (
+    <div style={styles.container}>
+      <section style={styles.hero}>
+        <h1 style={styles.heroTitle}>
+          Bienvenue sur notre plateforme e-learning
+        </h1>
+        <p style={styles.heroSubtitle}>
+          Développez vos compétences avec nos meilleurs cours.
+        </p>
+      </section>
 
-            {meta.totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '30px', paddingBottom: '20px' }}>
-                    <button 
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
-                    >
-                        &lt; Précédent
-                    </button>
-
-                    <span style={{ fontSize: '1.1em' }}>
-                        Page <strong>{currentPage}</strong> sur {meta.totalPages}
-                    </span>
-
-                    <button 
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === meta.totalPages}
-                        style={{ opacity: currentPage === meta.totalPages ? 0.5 : 1, cursor: currentPage === meta.totalPages ? 'not-allowed' : 'pointer' }}
-                    >
-                        Suivant &gt;
-                    </button>
-                </div>
-            )}
+      <section>
+        <h2 style={styles.sectionTitle}>Nos Formations Récentes</h2>
+        <div style={styles.grid}>
+          {formations.map((formation) => (
+            <FormationCard
+              key={formation.id}
+              formation={formation}
+              onClick={handleCardClick}
+            />
+          ))}
         </div>
-    );
-}
+      </section>
+    </div>
+  );
+};
+
+const styles = {
+  container: {
+    width: "100%",
+  },
+  hero: {
+    textAlign: "center",
+    marginBottom: "40px",
+    padding: "40px 20px",
+    backgroundColor: "#e9ecef",
+    borderRadius: "8px",
+  },
+  heroTitle: {
+    fontSize: "2.5rem",
+    marginBottom: "10px",
+    color: "#2c3e50",
+  },
+  heroSubtitle: {
+    fontSize: "1.2rem",
+    color: "#6c757d",
+  },
+  sectionTitle: {
+    fontSize: "1.8rem",
+    marginBottom: "20px",
+    color: "#333",
+    paddingLeft: "10px",
+  },
+  grid: {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: "20px",
+  },
+};
 
 export default Home;

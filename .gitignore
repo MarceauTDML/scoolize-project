@@ -3,3 +3,4 @@ docker-compose.yml
 .DS_Store
 node_modules/
 scoolize.sql
+fr-esr-cartographie_formations_parcoursup.csv
