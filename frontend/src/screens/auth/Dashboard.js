@@ -9,6 +9,9 @@ import {
   createNews,
   deleteNews,
   getSchoolNews,
+  getEventRegistrations,
+  updateEventRegistration,
+  getMyEventRegistrations,
 } from "../../api/client";
 
 const Dashboard = () => {
@@ -18,9 +21,19 @@ const Dashboard = () => {
   const [schoolApplications, setSchoolApplications] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
   const [myFavorites, setMyFavorites] = useState([]);
+  const [myEvents, setMyEvents] = useState([]);
 
   const [newsList, setNewsList] = useState([]);
-  const [newsForm, setNewsForm] = useState({ title: "", content: "" });
+  const [newsForm, setNewsForm] = useState({
+    title: "",
+    content: "",
+    type: "news",
+    event_date: "",
+    capacity: "",
+  });
+
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [eventRegistrations, setEventRegistrations] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -40,6 +53,7 @@ const Dashboard = () => {
     } else if (userData.role === "student") {
       fetchStudentApplications();
       fetchFavorites();
+      fetchMyEvents();
     }
   }, [navigate]);
 
@@ -65,6 +79,15 @@ const Dashboard = () => {
     try {
       const data = await getFavorites();
       setMyFavorites(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchMyEvents = async () => {
+    try {
+      const data = await getMyEventRegistrations();
+      setMyEvents(data);
     } catch (err) {
       console.error(err);
     }
@@ -103,9 +126,15 @@ const Dashboard = () => {
     e.preventDefault();
     try {
       await createNews(newsForm);
-      setNewsForm({ title: "", content: "" });
+      setNewsForm({
+        title: "",
+        content: "",
+        type: "news",
+        event_date: "",
+        capacity: "",
+      });
       fetchMyNews(user.id);
-      alert("Actualité publiée !");
+      alert("Publié !");
     } catch (err) {
       alert("Erreur : " + err.message);
     }
@@ -122,13 +151,46 @@ const Dashboard = () => {
     }
   };
 
+  const handleViewRegistrations = async (eventId) => {
+    setSelectedEventId(eventId);
+    try {
+      const regs = await getEventRegistrations(eventId);
+      setEventRegistrations(regs);
+    } catch (e) {
+      alert("Impossible de charger les inscrits");
+    }
+  };
+
+  const handleRegistrationStatus = async (regId, status) => {
+    try {
+      await updateEventRegistration(regId, status);
+      const regs = await getEventRegistrations(selectedEventId);
+      setEventRegistrations(regs);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
   };
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "accepted":
+        return { color: "#28a745", label: "Admis", bg: "#d4edda" };
+      case "rejected":
+        return { color: "#dc3545", label: "Refusé", bg: "#f8d7da" };
+      default:
+        return { color: "#856404", label: "En attente", bg: "#fff3cd" };
+    }
+  };
+
   if (!user) return null;
+
+  const acceptedEvents = myEvents.filter((e) => e.status === "accepted");
 
   return (
     <div style={{ padding: "20px" }}>
@@ -160,7 +222,6 @@ const Dashboard = () => {
         <div>
           <div style={{ marginBottom: "40px" }}>
             <h2>Candidatures reçues ({schoolApplications.length})</h2>
-
             {schoolApplications.length === 0 ? (
               <p>Aucune candidature pour le moment.</p>
             ) : (
@@ -170,45 +231,27 @@ const Dashboard = () => {
                     key={app.id}
                     style={{
                       background: "white",
-                      padding: "20px",
+                      padding: "15px",
                       borderRadius: "10px",
                       boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-                      borderLeft:
-                        app.status === "pending"
-                          ? "5px solid #ffc107"
-                          : app.status === "accepted"
-                          ? "5px solid #28a745"
-                          : "5px solid #dc3545",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      borderLeft: "5px solid #007bff",
                     }}
                   >
-                    <div>
-                      <h3 style={{ margin: "0 0 5px" }}>
-                        {app.first_name} {app.last_name}
-                      </h3>
-                      <p style={{ margin: 0, color: "#666" }}>{app.email}</p>
-                      <p style={{ margin: "5px 0 0", fontWeight: "bold" }}>
-                        Statut :{" "}
-                        {app.status === "pending"
-                          ? "En attente"
-                          : app.status === "accepted"
-                          ? "Admis"
-                          : "Refusé"}
-                      </p>
-                    </div>
-
+                    <strong>
+                      {app.first_name} {app.last_name}
+                    </strong>{" "}
+                    ({app.email}) - {app.status}
                     {app.status === "pending" && (
-                      <div style={{ display: "flex", gap: "10px" }}>
+                      <div style={{ marginTop: "5px" }}>
                         <button
                           onClick={() => handleStatusChange(app.id, "accepted")}
                           style={{
-                            padding: "8px 12px",
-                            background: "#28a745",
+                            marginRight: "5px",
+                            background: "green",
                             color: "white",
                             border: "none",
-                            borderRadius: "5px",
+                            padding: "5px",
+                            borderRadius: "3px",
                             cursor: "pointer",
                           }}
                         >
@@ -217,11 +260,11 @@ const Dashboard = () => {
                         <button
                           onClick={() => handleStatusChange(app.id, "rejected")}
                           style={{
-                            padding: "8px 12px",
-                            background: "#dc3545",
+                            background: "red",
                             color: "white",
                             border: "none",
-                            borderRadius: "5px",
+                            padding: "5px",
+                            borderRadius: "3px",
                             cursor: "pointer",
                           }}
                         >
@@ -237,26 +280,45 @@ const Dashboard = () => {
 
           <hr style={{ borderTop: "1px solid #ddd", margin: "40px 0" }} />
 
-          <div>
-            <h2>Mes actualités & événements</h2>
-
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "30px",
+            }}
+          >
             <div
               style={{
                 background: "white",
                 padding: "20px",
                 borderRadius: "10px",
                 boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-                marginBottom: "30px",
               }}
             >
-              <h3 style={{ marginTop: 0 }}>Publier une nouvelle info</h3>
+              <h3 style={{ marginTop: 0 }}>Publier une Info ou JPO</h3>
               <form
                 onSubmit={handleNewsSubmit}
                 style={{ display: "grid", gap: "15px" }}
               >
+                <select
+                  value={newsForm.type}
+                  onChange={(e) =>
+                    setNewsForm({ ...newsForm, type: e.target.value })
+                  }
+                  style={{
+                    padding: "10px",
+                    borderRadius: "5px",
+                    border: "1px solid #ddd",
+                    background: "white",
+                  }}
+                >
+                  <option value="news">Actualité classique</option>
+                  <option value="jpo">📅 Événement / JPO</option>
+                </select>
+
                 <input
                   type="text"
-                  placeholder="Titre (ex: Journée Portes Ouvertes le 15 Mars)"
+                  placeholder="Titre"
                   value={newsForm.title}
                   onChange={(e) =>
                     setNewsForm({ ...newsForm, title: e.target.value })
@@ -268,8 +330,9 @@ const Dashboard = () => {
                     border: "1px solid #ddd",
                   }}
                 />
+
                 <textarea
-                  placeholder="Détails de l'événement..."
+                  placeholder="Description..."
                   value={newsForm.content}
                   onChange={(e) =>
                     setNewsForm({ ...newsForm, content: e.target.value })
@@ -280,9 +343,55 @@ const Dashboard = () => {
                     padding: "10px",
                     borderRadius: "5px",
                     border: "1px solid #ddd",
-                    fontFamily: "inherit",
                   }}
                 />
+
+                {newsForm.type === "jpo" && (
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: "0.8em", color: "#666" }}>
+                        Date de l'événement
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={newsForm.event_date}
+                        onChange={(e) =>
+                          setNewsForm({
+                            ...newsForm,
+                            event_date: e.target.value,
+                          })
+                        }
+                        required
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          borderRadius: "5px",
+                          border: "1px solid #ddd",
+                        }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: "0.8em", color: "#666" }}>
+                        Capacité Max (optionnel)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Ex: 50"
+                        value={newsForm.capacity}
+                        onChange={(e) =>
+                          setNewsForm({ ...newsForm, capacity: e.target.value })
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          borderRadius: "5px",
+                          border: "1px solid #ddd",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   style={{
@@ -300,59 +409,215 @@ const Dashboard = () => {
               </form>
             </div>
 
-            <h3>Historique ({newsList.length})</h3>
-            {newsList.length === 0 ? (
-              <p style={{ color: "#666" }}>Aucune actualité publiée.</p>
-            ) : (
-              <div style={{ display: "grid", gap: "15px" }}>
+            <div>
+              <h3>Mes Publications ({newsList.length})</h3>
+              <div
+                style={{
+                  display: "grid",
+                  gap: "15px",
+                  maxHeight: "500px",
+                  overflowY: "auto",
+                }}
+              >
                 {newsList.map((news) => (
                   <div
                     key={news.id}
                     style={{
                       background: "white",
-                      padding: "20px",
+                      padding: "15px",
                       borderRadius: "10px",
-                      borderLeft: "5px solid #17a2b8",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
+                      borderLeft:
+                        news.type === "jpo"
+                          ? "5px solid #ffc107"
+                          : "5px solid #17a2b8",
                     }}
                   >
-                    <div>
-                      <h4 style={{ margin: "0 0 5px 0", color: "#17a2b8" }}>
-                        {news.title}
-                      </h4>
-                      <p
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <strong
                         style={{
-                          margin: "0 0 10px 0",
-                          fontSize: "0.9rem",
-                          color: "#555",
+                          color:
+                            news.type === "jpo" ? "#e0a800" : "#17a2b8",
                         }}
                       >
-                        Publié le{" "}
-                        {new Date(news.created_at).toLocaleDateString()}
-                      </p>
-                      <p style={{ margin: 0, whiteSpace: "pre-line" }}>
-                        {news.content}
-                      </p>
+                        {news.type === "jpo" ? "📅 JPO" : "📰 NEWS"} :{" "}
+                        {news.title}
+                      </strong>
+                      <button
+                        onClick={() => handleDeleteNews(news.id)}
+                        style={{
+                          border: "none",
+                          background: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        🗑️
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleDeleteNews(news.id)}
+
+                    <p
                       style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "1.2rem",
+                        fontSize: "0.9rem",
+                        color: "#555",
+                        margin: "5px 0",
                       }}
-                      title="Supprimer"
                     >
-                      🗑️
-                    </button>
+                      {news.content}
+                    </p>
+
+                    {news.type === "jpo" && (
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          background: "#fff3cd",
+                          padding: "10px",
+                          borderRadius: "5px",
+                        }}
+                      >
+                        <small>
+                          Le :{" "}
+                          {news.event_date
+                            ? new Date(news.event_date).toLocaleString()
+                            : "Date non définie"}
+                        </small>
+                        <br />
+                        <small>
+                          Inscrits : <strong>{news.registered_count}</strong>{" "}
+                          {news.capacity ? `/ ${news.capacity}` : ""}
+                        </small>
+                        <button
+                          onClick={() => handleViewRegistrations(news.id)}
+                          style={{
+                            display: "block",
+                            marginTop: "5px",
+                            padding: "5px 10px",
+                            background: "#333",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "3px",
+                            cursor: "pointer",
+                            fontSize: "0.8em",
+                          }}
+                        >
+                          Gérer les inscrits
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-            )}
+            </div>
           </div>
+
+          {selectedEventId && (
+            <div
+              style={{
+                marginTop: "40px",
+                background: "white",
+                padding: "20px",
+                borderRadius: "10px",
+                border: "2px solid #333",
+              }}
+            >
+              <div
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
+                <h3>Inscrits à l'événement</h3>
+                <button onClick={() => setSelectedEventId(null)}>
+                  Fermer
+                </button>
+              </div>
+              {eventRegistrations.length === 0 ? (
+                <p>Aucun inscrit pour le moment.</p>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr
+                      style={{
+                        textAlign: "left",
+                        borderBottom: "1px solid #ddd",
+                      }}
+                    >
+                      <th>Nom</th>
+                      <th>Email</th>
+                      <th>Statut</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eventRegistrations.map((reg) => (
+                      <tr
+                        key={reg.id}
+                        style={{ borderBottom: "1px solid #eee" }}
+                      >
+                        <td style={{ padding: "10px 0" }}>
+                          {reg.first_name} {reg.last_name}
+                        </td>
+                        <td>{reg.email}</td>
+                        <td>
+                          <span
+                            style={{
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              background:
+                                reg.status === "accepted"
+                                  ? "#d4edda"
+                                  : reg.status === "rejected"
+                                  ? "#f8d7da"
+                                  : "#fff3cd",
+                              color:
+                                reg.status === "accepted"
+                                  ? "green"
+                                  : reg.status === "rejected"
+                                  ? "red"
+                                  : "#856404",
+                            }}
+                          >
+                            {reg.status}
+                          </span>
+                        </td>
+                        <td>
+                          {reg.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() =>
+                                  handleRegistrationStatus(
+                                    reg.id,
+                                    "accepted"
+                                  )
+                                }
+                                style={{
+                                  marginRight: "5px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                ✅
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRegistrationStatus(
+                                    reg.id,
+                                    "rejected"
+                                  )
+                                }
+                                style={{ cursor: "pointer" }}
+                              >
+                                ❌
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -387,83 +652,136 @@ const Dashboard = () => {
             </p>
           ) : (
             <div style={{ display: "grid", gap: "20px", marginTop: "20px" }}>
-              {myApplications.map((app) => (
-                <div
-                  key={app.id}
-                  style={{
-                    background: "white",
-                    padding: "20px",
-                    borderRadius: "10px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <h3 style={{ margin: "0 0 5px 0", color: "#333" }}>
-                      {app.school_name}
-                    </h3>
-                    <p style={{ margin: 0, color: "#666" }}>
-                      {app.school_city}
-                    </p>
-                    <p
-                      style={{
-                        margin: "5px 0 0",
-                        fontSize: "0.9em",
-                        color: "#888",
-                      }}
-                    >
-                      Envoyé le :{" "}
-                      {new Date(app.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
+              {myApplications.map((app) => {
+                const badge = getStatusBadge(app.status);
+                return (
+                  <div
+                    key={app.id}
+                    style={{
+                      background: "white",
+                      padding: "20px",
+                      borderRadius: "10px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 5px 0", color: "#333" }}>
+                        {app.school_name}
+                      </h3>
+                      <p style={{ margin: 0, color: "#666" }}>
+                        {app.school_city}
+                      </p>
+                      <p
+                        style={{
+                          margin: "5px 0 0",
+                          fontSize: "0.9em",
+                          color: "#888",
+                        }}
+                      >
+                        Envoyé le :{" "}
+                        {new Date(app.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
 
-                  <div style={{ textAlign: "right" }}>
-                    <span
-                      style={{
-                        padding: "8px 15px",
-                        borderRadius: "20px",
-                        backgroundColor:
-                          app.status === "accepted"
-                            ? "#d4edda"
-                            : app.status === "rejected"
-                            ? "#f8d7da"
-                            : "#fff3cd",
-                        color:
-                          app.status === "accepted"
-                            ? "#28a745"
-                            : app.status === "rejected"
-                            ? "#dc3545"
-                            : "#856404",
-                        fontWeight: "bold",
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      {app.status === "accepted"
-                        ? "Admis"
-                        : app.status === "rejected"
-                        ? "Refusé"
-                        : "En attente"}
-                    </span>
+                    <div style={{ textAlign: "right" }}>
+                      <span
+                        style={{
+                          padding: "8px 15px",
+                          borderRadius: "20px",
+                          backgroundColor: badge.bg,
+                          color: badge.color,
+                          fontWeight: "bold",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        {badge.label}
+                      </span>
 
-                    {app.website && (
-                      <div style={{ marginTop: "10px" }}>
-                        <a
-                          href={app.website}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ fontSize: "0.85em", color: "#007bff" }}
-                        >
-                          Visiter le site
-                        </a>
-                      </div>
-                    )}
+                      {app.website && (
+                        <div style={{ marginTop: "10px" }}>
+                          <a
+                            href={app.website}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ fontSize: "0.85em", color: "#007bff" }}
+                          >
+                            Visiter le site
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
+
+          <hr style={{ borderTop: "1px solid #ddd", margin: "40px 0" }} />
+
+          <div style={{ marginBottom: "40px" }}>
+            <h2>
+              📅 Mes Événements & JPO confirmés ({acceptedEvents.length})
+            </h2>
+
+            {acceptedEvents.length === 0 ? (
+              <p style={{ color: "#666" }}>
+                Vous n'avez aucune inscription confirmée pour le moment.
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gap: "15px",
+                  marginTop: "20px",
+                }}
+              >
+                {acceptedEvents.map((evt) => (
+                  <div
+                    key={evt.registration_id}
+                    style={{
+                      background: "#fff8e1",
+                      padding: "20px",
+                      borderRadius: "10px",
+                      borderLeft: "5px solid #ffc107",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 5px", color: "#d39e00" }}>
+                        {evt.title}
+                      </h3>
+                      <p style={{ margin: "0 0 5px", fontWeight: "bold" }}>
+                        📅 {new Date(evt.event_date).toLocaleString()}
+                      </p>
+                      <p style={{ margin: 0, color: "#555" }}>
+                        📍 {evt.school_name} ({evt.school_city})
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/school/${evt.school_id}`)}
+                      style={{
+                        padding: "10px 15px",
+                        background: "white",
+                        border: "1px solid #d39e00",
+                        color: "#d39e00",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Voir l'école
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <hr style={{ borderTop: "1px solid #ddd", margin: "40px 0" }} />
 
@@ -506,7 +824,6 @@ const Dashboard = () => {
                       marginBottom: "10px",
                     }}
                   >
-                    <span style={{ marginRight: "8px" }}>📍</span>
                     <span>{fav.last_name}</span>
                   </div>
                   <button
@@ -522,8 +839,12 @@ const Dashboard = () => {
                       cursor: "pointer",
                       fontWeight: "600",
                     }}
-                    onMouseOver={(e) => (e.target.style.background = "#dbe2e8")}
-                    onMouseOut={(e) => (e.target.style.background = "#e9ecef")}
+                    onMouseOver={(e) =>
+                      (e.target.style.background = "#dbe2e8")
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.style.background = "#e9ecef")
+                    }
                   >
                     Voir la fiche
                   </button>
