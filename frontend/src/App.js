@@ -4,14 +4,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './screens/auth/Login';
 import Register from './screens/auth/Register';
 import Dashboard from './screens/auth/Dashboard';
+import Home from './screens/Home';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
-          
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />

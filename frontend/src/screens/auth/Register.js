@@ -4,7 +4,13 @@ import { register } from '../../api/client';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ 
+    first_name: '', 
+    last_name: '', 
+    email: '', 
+    password: '' 
+  });
+  
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
@@ -34,9 +40,24 @@ const Register = () => {
       <h2>Inscription</h2>
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Nom d'utilisateur</label>
-          <input type="text" name="username" required onChange={handleChange} />
+          <label>Prénom</label>
+          <input 
+            type="text" 
+            name="first_name" 
+            required 
+            onChange={handleChange} 
+          />
         </div>
+        <div>
+          <label>Nom</label>
+          <input 
+            type="text" 
+            name="last_name" 
+            required 
+            onChange={handleChange} 
+          />
+        </div>
+
         <div>
           <label>Email</label>
           <input type="email" name="email" required onChange={handleChange} />
