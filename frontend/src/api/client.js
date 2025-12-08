@@ -46,3 +46,19 @@ export const register = (userData) => {
 export const getSchools = () => {
   return request('/schools', 'GET');
 };
+
+export const getSchoolById = (id) => {
+  return request(`/schools/${id}`, 'GET');
+};
+
+export const getPendingSchools = () => {
+  return request('/admin/pending', 'GET');
+};
+
+export const validateSchool = (id) => {
+  return request(`/admin/validate/${id}`, 'PUT');
+};
+
+export const rejectSchool = (id) => {
+  return request(`/admin/reject/${id}`, 'DELETE');
+};
