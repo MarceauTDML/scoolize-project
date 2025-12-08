@@ -4,6 +4,8 @@ import {
   getMyApplications,
   getStudentApplications,
   updateApplicationStatus,
+  getFavorites,
+  toggleFavorite,
 } from "../../api/client";
 
 const Dashboard = () => {
@@ -12,6 +14,7 @@ const Dashboard = () => {
 
   const [schoolApplications, setSchoolApplications] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
+  const [myFavorites, setMyFavorites] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -29,6 +32,7 @@ const Dashboard = () => {
       fetchSchoolApplications();
     } else if (userData.role === "student") {
       fetchStudentApplications();
+      fetchFavorites();
     }
   }, [navigate]);
 
@@ -36,6 +40,24 @@ const Dashboard = () => {
     try {
       const data = await getMyApplications();
       setSchoolApplications(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchStudentApplications = async () => {
+    try {
+      const data = await getStudentApplications();
+      setMyApplications(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    try {
+      const data = await getFavorites();
+      setMyFavorites(data);
     } catch (err) {
       console.error(err);
     }
@@ -50,12 +72,14 @@ const Dashboard = () => {
     }
   };
 
-  const fetchStudentApplications = async () => {
-    try {
-      const data = await getStudentApplications();
-      setMyApplications(data);
-    } catch (err) {
-      console.error(err);
+  const handleRemoveFavorite = async (schoolId) => {
+    if (window.confirm("Retirer des favoris ?")) {
+      try {
+        await toggleFavorite(schoolId);
+        fetchFavorites();
+      } catch (err) {
+        alert(err.message);
+      }
     }
   };
 
@@ -234,7 +258,7 @@ const Dashboard = () => {
                         {app.school_name}
                       </h3>
                       <p style={{ margin: 0, color: "#666" }}>
-                        📍 {app.school_city}
+                        {app.school_city}
                       </p>
                       <p
                         style={{
@@ -265,7 +289,7 @@ const Dashboard = () => {
                       {app.website && (
                         <div style={{ marginTop: "10px" }}>
                           <a
-                            href={`http://${app.website}`}
+                            href={app.website}
                             target="_blank"
                             rel="noreferrer"
                             style={{ fontSize: "0.85em", color: "#007bff" }}
@@ -278,6 +302,72 @@ const Dashboard = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          <hr style={{ borderTop: "1px solid #ddd", margin: "40px 0" }} />
+
+          <h2>Mes Écoles Favorites ({myFavorites.length})</h2>
+          {myFavorites.length === 0 ? (
+            <p style={{ color: "#666" }}>
+              Vous n'avez ajouté aucune école en favori.
+            </p>
+          ) : (
+            <div className="schools-grid" style={{ marginTop: "20px" }}>
+              {myFavorites.map((fav) => (
+                <div
+                  key={fav.id}
+                  className="school-card"
+                  style={{ position: "relative" }}
+                >
+                  <button
+                    onClick={() => handleRemoveFavorite(fav.id)}
+                    style={{
+                      position: "absolute",
+                      top: "10px",
+                      right: "10px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      fontSize: "1.2rem",
+                    }}
+                    title="Retirer des favoris"
+                  >
+                    ❌
+                  </button>
+                  <h3 style={{ margin: "0 0 10px", minHeight: "50px" }}>
+                    {fav.first_name}
+                  </h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      color: "#666",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <span>{fav.last_name}</span>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/school/${fav.id}`)}
+                    style={{
+                      width: "100%",
+                      marginTop: "10px",
+                      padding: "10px",
+                      background: "#e9ecef",
+                      color: "#333",
+                      border: "none",
+                      borderRadius: "5px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                    }}
+                    onMouseOver={(e) => (e.target.style.background = "#dbe2e8")}
+                    onMouseOut={(e) => (e.target.style.background = "#e9ecef")}
+                  >
+                    Voir la fiche
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

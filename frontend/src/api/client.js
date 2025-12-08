@@ -79,3 +79,19 @@ export const validateSchool = (id) => {
 export const rejectSchool = (id) => {
   return request(`/admin/reject/${id}`, 'DELETE');
 };
+
+export const toggleFavorite = (schoolId) => {
+  return request('/favorites/toggle', 'POST', { school_id: schoolId });
+};
+
+export const getFavorites = () => {
+  return request('/favorites', 'GET');
+};
+
+export const getFavoriteIds = () => {
+  return request('/favorites/ids', 'GET');
+};
+
+export const getAllSchoolLocations = () => {
+  return request('/schools/locations', 'GET');
+};

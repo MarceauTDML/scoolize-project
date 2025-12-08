@@ -8,6 +8,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/login');
   };
 
@@ -20,6 +21,7 @@ const Navbar = () => {
       </div>
       <div className="navbar-links">
         <Link to="/" className="nav-link">Accueil</Link>
+        <Link to="/map" className="nav-link">Carte Interactive</Link>
         
         {isAuthenticated ? (
           <>

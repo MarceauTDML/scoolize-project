@@ -2,6 +2,27 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
 
+router.get("/locations", async (req, res) => {
+  try {
+    const query = `
+            SELECT u.id, u.first_name, u.last_name, 
+                   d.latitude, d.longitude, d.school_type
+            FROM users u
+            JOIN school_details d ON u.id = d.user_id
+            WHERE u.role = 'school' 
+            AND d.latitude IS NOT NULL 
+            AND d.longitude IS NOT NULL
+            AND d.latitude != ''
+        `;
+
+    const [results] = await db.query(query);
+    res.json(results);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur lors du chargement de la carte." });
+  }
+});
+
 router.get("/", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = 20;

@@ -7,6 +7,7 @@ import Dashboard from './screens/auth/Dashboard';
 import Home from './screens/Home';
 import SchoolDetails from './screens/SchoolDetails';
 import AdminDashboard from './screens/admin/AdminDashboard';
+import SchoolsMap from './screens/SchoolsMap';
 
 import Navbar from './components/Navbar';
 
@@ -19,6 +20,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/school/:id" element={<SchoolDetails />} />
+            <Route path="/map" element={<SchoolsMap />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />

@@ -1,18 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getSchoolById, applyToSchool } from "../api/client";
+import { getSchoolById, applyToSchool, toggleFavorite, getFavoriteIds } from "../api/client";
 
 const SchoolDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [school, setSchool] = useState(null);
   const [error, setError] = useState("");
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
       try {
         const data = await getSchoolById(id);
         setSchool(data);
+
+        const token = localStorage.getItem("token");
+        if (token) {
+          const ids = await getFavoriteIds();
+          if (ids.includes(parseInt(id))) {
+            setIsFavorite(true);
+          }
+        }
       } catch (err) {
         setError("Impossible de charger les infos de l'école.");
       }
@@ -46,6 +55,20 @@ const SchoolDetails = () => {
       } catch (err) {
         alert(err.message);
       }
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+    try {
+      const response = await toggleFavorite(id);
+      setIsFavorite(response.isFavorite);
+    } catch (err) {
+      alert("Erreur lors de la modification des favoris");
     }
   };
 
@@ -88,8 +111,27 @@ const SchoolDetails = () => {
           padding: "40px",
           borderRadius: "15px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+          position: "relative",
         }}
       >
+        <button
+          onClick={handleToggleFavorite}
+          style={{
+            position: "absolute",
+            top: "30px",
+            right: "30px",
+            fontSize: "2rem",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: isFavorite ? "#e74c3c" : "#ccc",
+            zIndex: 10,
+          }}
+          title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+        >
+          {isFavorite ? "❤️" : "🤍"}
+        </button>
+
         <h1 style={{ color: "#007bff", marginTop: 0, marginBottom: "10px" }}>
           {school.first_name}
         </h1>
