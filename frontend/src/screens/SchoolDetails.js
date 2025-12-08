@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getSchoolById, applyToSchool, toggleFavorite, getFavoriteIds } from "../api/client";
+import { 
+  getSchoolById, 
+  applyToSchool, 
+  toggleFavorite, 
+  getFavoriteIds, 
+  getSchoolNews 
+} from "../api/client";
 
 const SchoolDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [school, setSchool] = useState(null);
+  const [news, setNews] = useState([]);
   const [error, setError] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -14,6 +21,13 @@ const SchoolDetails = () => {
       try {
         const data = await getSchoolById(id);
         setSchool(data);
+
+        try {
+          const newsData = await getSchoolNews(id);
+          setNews(newsData);
+        } catch (e) {
+          console.error("Erreur lors du chargement des actualités", e);
+        }
 
         const token = localStorage.getItem("token");
         if (token) {
@@ -183,6 +197,68 @@ const SchoolDetails = () => {
               "Aucune description disponible pour le moment."}
           </p>
         </div>
+
+        {news.length > 0 && (
+          <div style={{ marginBottom: "30px" }}>
+            <h4
+              style={{
+                marginBottom: "15px",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              Actualités & Événements
+              <span
+                style={{
+                  marginLeft: "10px",
+                  fontSize: "0.8em",
+                  background: "#e9ecef",
+                  padding: "2px 8px",
+                  borderRadius: "10px",
+                }}
+              >
+                {news.length}
+              </span>
+            </h4>
+            <div style={{ display: "grid", gap: "15px" }}>
+              {news.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    borderLeft: "4px solid #007bff",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <strong style={{ color: "#007bff", fontSize: "1.1em" }}>
+                      {item.title}
+                    </strong>
+                    <small style={{ color: "#888" }}>
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </small>
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#555",
+                      whiteSpace: "pre-line",
+                    }}
+                  >
+                    {item.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div
           style={{
