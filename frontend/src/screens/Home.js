@@ -232,6 +232,8 @@ const Home = () => {
             const badgeColor = isPrivate ? "#ffc107" : "#17a2b8";
             const isFav = favorites.has(school.id);
 
+            const rating = parseFloat(school.average_rating) || 0;
+
             return (
               <div
                 key={school.id}
@@ -256,52 +258,78 @@ const Home = () => {
                   {isFav ? "❤️" : "🤍"}
                 </button>
 
-                <h3
-                  style={{
-                    margin: "0 0 10px 0",
-                    color: "#333",
-                    minHeight: "50px",
-                    fontSize: "1.1rem",
-                    paddingRight: "30px",
-                  }}
-                >
-                  {school.first_name}
-                </h3>
+                <div style={{ marginRight: "40px" }}>
+                  {" "}
+                  <h3
+                    style={{
+                      margin: "0 0 5px 0",
+                      color: "#333",
+                      minHeight: "50px",
+                      fontSize: "1.1rem",
+                      lineHeight: "1.4",
+                    }}
+                  >
+                    {school.first_name}
+                  </h3>
+                </div>
 
                 <div
                   style={{
                     display: "flex",
-                    flexWrap: "wrap",
-                    gap: "8px",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: "15px",
                   }}
                 >
-                  {school.school_type && (
-                    <span
+                  <div
+                    style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+                  >
+                    {school.school_type && (
+                      <span
+                        style={{
+                          backgroundColor: badgeColor,
+                          color: isPrivate ? "#333" : "white",
+                          padding: "4px 8px",
+                          borderRadius: "12px",
+                          fontSize: "0.75rem",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {school.school_type}
+                      </span>
+                    )}
+                    {school.region && (
+                      <span
+                        style={{
+                          backgroundColor: "#e9ecef",
+                          color: "#495057",
+                          padding: "4px 8px",
+                          borderRadius: "12px",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        {school.region}
+                      </span>
+                    )}
+                  </div>
+
+                  {rating > 0 && (
+                    <div
                       style={{
-                        backgroundColor: badgeColor,
-                        color: isPrivate ? "#333" : "white",
-                        padding: "4px 8px",
+                        display: "flex",
+                        alignItems: "center",
+                        background: "#fff3cd",
+                        padding: "2px 8px",
                         borderRadius: "12px",
-                        fontSize: "0.75rem",
+                        fontSize: "0.85rem",
+                        color: "#856404",
                         fontWeight: "bold",
+                        border: "1px solid #ffeeba",
                       }}
                     >
-                      {school.school_type}
-                    </span>
-                  )}
-                  {school.region && (
-                    <span
-                      style={{
-                        backgroundColor: "#e9ecef",
-                        color: "#495057",
-                        padding: "4px 8px",
-                        borderRadius: "12px",
-                        fontSize: "0.75rem",
-                      }}
-                    >
-                      {school.region}
-                    </span>
+                      <span style={{ marginRight: "4px" }}>⭐</span>
+                      {rating.toFixed(1)}
+                    </div>
                   )}
                 </div>
 

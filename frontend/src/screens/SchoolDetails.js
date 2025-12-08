@@ -8,16 +8,25 @@ import {
   getSchoolNews,
   registerForEvent,
   checkMyEventRegistrations,
+  getSchoolReviews,
+  checkCanReview,
+  createReview,
 } from "../api/client";
 
 const SchoolDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [school, setSchool] = useState(null);
   const [news, setNews] = useState([]);
   const [error, setError] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [myRegistrations, setMyRegistrations] = useState([]);
+
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [canReview, setCanReview] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -29,7 +38,15 @@ const SchoolDetails = () => {
           const newsData = await getSchoolNews(id);
           setNews(newsData);
         } catch (e) {
-          console.error(e);
+          console.error("Erreur news", e);
+        }
+
+        try {
+          const reviewData = await getSchoolReviews(id);
+          setReviews(reviewData.reviews);
+          setAverageRating(reviewData.average);
+        } catch (e) {
+          console.error("Erreur reviews", e);
         }
 
         const token = localStorage.getItem("token");
@@ -45,6 +62,13 @@ const SchoolDetails = () => {
           } catch (e) {
             console.error(e);
           }
+
+          try {
+            const check = await checkCanReview(id);
+            setCanReview(check.canReview);
+          } catch (e) {
+            console.error(e);
+          }
         }
       } catch (err) {
         setError("Impossible de charger les infos de l'école.");
@@ -57,9 +81,7 @@ const SchoolDetails = () => {
     const token = localStorage.getItem("token");
     if (!token) {
       if (
-        window.confirm(
-          "Vous devez être connecté pour postuler. Voulez-vous vous connecter ?"
-        )
+        window.confirm("Vous devez être connecté pour postuler. Se connecter ?")
       ) {
         navigate("/login");
       }
@@ -117,6 +139,26 @@ const SchoolDetails = () => {
         alert(e.message);
       }
     }
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await createReview({ school_id: id, ...reviewForm });
+      alert("Merci ! Votre avis a été publié anonymement.");
+
+      setCanReview(false);
+
+      const reviewData = await getSchoolReviews(id);
+      setReviews(reviewData.reviews);
+      setAverageRating(reviewData.average);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const renderStars = (rating) => {
+    return "⭐".repeat(Math.round(rating));
   };
 
   if (error)
@@ -217,6 +259,32 @@ const SchoolDetails = () => {
               ({school.region})
             </span>
           )}
+
+          {reviews.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "#fff3cd",
+                padding: "5px 10px",
+                borderRadius: "20px",
+                border: "1px solid #ffc107",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "1.1rem",
+                  marginRight: "5px",
+                  fontWeight: "bold",
+                }}
+              >
+                {averageRating}
+              </span>
+              <span style={{ fontSize: "0.9rem", color: "#666" }}>
+                / 5 ({reviews.length} avis)
+              </span>
+            </div>
+          )}
         </div>
 
         <hr
@@ -276,7 +344,7 @@ const SchoolDetails = () => {
                           fontSize: "1.1em",
                         }}
                       >
-                        {item.type === "jpo" ? "📅 JPO : " : ""} {item.title}
+                        {item.type === "jpo" ? "JPO : " : ""} {item.title}
                       </strong>
                       <small style={{ color: "#888" }}>
                         {new Date(item.created_at).toLocaleDateString()}
@@ -308,7 +376,6 @@ const SchoolDetails = () => {
                           Places : {item.registered_count}{" "}
                           {item.capacity ? `/ ${item.capacity}` : "inscrits"}
                         </p>
-
                         <div style={{ marginTop: "10px" }}>
                           {myReg ? (
                             <span
@@ -430,6 +497,128 @@ const SchoolDetails = () => {
         >
           Postuler à cette école
         </button>
+
+        <hr style={{ margin: "40px 0", borderTop: "1px solid #ddd" }} />
+
+        <div>
+          <h2 style={{ marginBottom: "20px" }}>Avis des étudiants</h2>
+
+          {canReview && (
+            <div
+              style={{
+                background: "#f0f8ff",
+                padding: "20px",
+                borderRadius: "10px",
+                marginBottom: "30px",
+                border: "1px solid #cce5ff",
+              }}
+            >
+              <h4 style={{ marginTop: 0, color: "#0056b3" }}>
+                Vous avez été admis ici ! Donnez votre avis (Anonyme)
+              </h4>
+              <form onSubmit={handleReviewSubmit}>
+                <div style={{ marginBottom: "10px" }}>
+                  <label style={{ fontWeight: "bold", marginRight: "10px" }}>
+                    Votre Note :{" "}
+                  </label>
+                  <select
+                    value={reviewForm.rating}
+                    onChange={(e) =>
+                      setReviewForm({
+                        ...reviewForm,
+                        rating: parseInt(e.target.value),
+                      })
+                    }
+                    style={{ padding: "8px", borderRadius: "5px" }}
+                  >
+                    <option value="5">5 - Excellent ⭐⭐⭐⭐⭐</option>
+                    <option value="4">4 - Très bien ⭐⭐⭐⭐</option>
+                    <option value="3">3 - Bien ⭐⭐⭐</option>
+                    <option value="2">2 - Moyen ⭐⭐</option>
+                    <option value="1">1 - Mauvais ⭐</option>
+                  </select>
+                </div>
+                <textarea
+                  placeholder="Partagez votre expérience avec les futurs candidats..."
+                  value={reviewForm.comment}
+                  onChange={(e) =>
+                    setReviewForm({ ...reviewForm, comment: e.target.value })
+                  }
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "5px",
+                    border: "1px solid #ccc",
+                    minHeight: "80px",
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  type="submit"
+                  style={{
+                    marginTop: "10px",
+                    padding: "10px 25px",
+                    background: "#007bff",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Publier mon avis
+                </button>
+              </form>
+            </div>
+          )}
+
+          {reviews.length === 0 ? (
+            <p style={{ color: "#666", fontStyle: "italic" }}>
+              Aucun avis pour le moment.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gap: "20px" }}>
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  style={{
+                    borderBottom: "1px solid #eee",
+                    paddingBottom: "15px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <span style={{ fontWeight: "bold", color: "#333" }}>
+                      Anonyme
+                    </span>
+                    <span style={{ color: "#ffc107", fontSize: "1.1rem" }}>
+                      {renderStars(review.rating)}
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      margin: "5px 0",
+                      color: "#555",
+                      lineHeight: "1.5",
+                    }}
+                  >
+                    {review.comment}
+                  </p>
+                  <small style={{ color: "#999" }}>
+                    Publié le {new Date(review.created_at).toLocaleDateString()}
+                  </small>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

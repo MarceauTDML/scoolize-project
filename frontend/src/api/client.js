@@ -127,3 +127,15 @@ export const checkMyEventRegistrations = () => {
 export const getMyEventRegistrations = () => {
   return request('/news/my-registrations', 'GET');
 };
+
+export const createReview = (data) => {
+  return request('/reviews', 'POST', data);
+};
+
+export const getSchoolReviews = (schoolId) => {
+  return request(`/reviews/school/${schoolId}`, 'GET');
+};
+
+export const checkCanReview = (schoolId) => {
+  return request(`/reviews/can-review/${schoolId}`, 'GET');
+};
