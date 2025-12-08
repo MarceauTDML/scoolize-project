@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const registerRoute = require('./routes/register');
 const loginRoute = require('./routes/login');
+const schoolsRoute = require('./routes/schools');
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 
 app.use('/api/auth/register', registerRoute);
 app.use('/api/auth/login', loginRoute);
+app.use('/api/schools', schoolsRoute);
 
 app.get('/', (req, res) => {
     res.send('API Scoolize en ligne');

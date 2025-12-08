@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:5000/api/auth';
+const API_URL = 'http://localhost:5000/api';
 
 const getHeaders = () => {
   const headers = {
@@ -11,30 +11,38 @@ const getHeaders = () => {
   return headers;
 };
 
-export const login = async (credentials) => {
-  const response = await fetch(`${BASE_URL}/login`, {
-    method: 'POST',
+const request = async (endpoint, method = 'GET', body = null) => {
+  const config = {
+    method,
     headers: getHeaders(),
-    body: JSON.stringify(credentials),
-  });
+  };
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Erreur lors de la connexion');
+  if (body) {
+    config.body = JSON.stringify(body);
   }
-  return data;
+
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, config);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Une erreur est survenue');
+    }
+
+    return data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-export const register = async (userData) => {
-  const response = await fetch(`${BASE_URL}/register`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(userData),
-  });
+export const login = (credentials) => {
+  return request('/auth/login', 'POST', credentials);
+};
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Erreur lors de l\'inscription');
-  }
-  return data;
+export const register = (userData) => {
+  return request('/auth/register', 'POST', userData);
+};
+
+export const getSchools = () => {
+  return request('/schools', 'GET');
 };
