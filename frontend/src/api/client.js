@@ -43,8 +43,8 @@ export const register = (userData) => {
   return request('/auth/register', 'POST', userData);
 };
 
-export const getSchools = () => {
-  return request('/schools', 'GET');
+export const getSchools = (page = 1) => {
+  return request(`/schools?page=${page}`, 'GET');
 };
 
 export const getSchoolById = (id) => {
