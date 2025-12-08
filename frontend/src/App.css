@@ -2,21 +2,97 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f0f2f5;
   margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block; 
   min-height: 100vh;
 }
 
-.login-container, .register-container {
+.navbar {
+  background-color: #333;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-brand a {
+  text-decoration: none;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-link {
+  color: #ddd;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav-link:hover {
+  color: white;
+}
+
+.nav-btn-register {
+  background-color: #007bff;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.nav-btn-register:hover {
+  background-color: #0056b3;
+}
+
+.nav-btn-logout {
+  background-color: #dc3545;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.nav-btn-logout:hover {
+  background-color: #a71d2a;
+}
+
+.content-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.auth-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 150px);
+}
+
+.auth-card {
   background: white;
   padding: 40px;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 350px;
+  max-width: 400px;
   text-align: center;
-  margin: 20px;
 }
 
 h2 { color: #333; margin-bottom: 20px; }
@@ -27,14 +103,14 @@ label { display: block; margin-bottom: 5px; color: #666; font-size: 0.9em; }
 
 input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   box-sizing: border-box;
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 16px;
 }
 
-button {
+button[type="submit"] {
   width: 100%;
   padding: 12px;
   background-color: #007bff;
@@ -48,3 +124,24 @@ button {
 }
 
 button:hover { background-color: #0056b3; }
+
+.schools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.school-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-top: 5px solid #007bff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.school-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
