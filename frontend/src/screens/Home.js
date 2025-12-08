@@ -35,12 +35,10 @@ const Home = () => {
             <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>{school.first_name}</h3>
             
             <div style={{ display: 'flex', alignItems: 'center', color: '#666', marginBottom: '10px' }}>
-              <span style={{ marginRight: '8px' }}>📍</span> 
               <span>{school.last_name}</span>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', color: '#888', fontSize: '0.9em' }}>
-              <span style={{ marginRight: '8px' }}>✉️</span>
               <span>{school.email}</span>
             </div>
             
