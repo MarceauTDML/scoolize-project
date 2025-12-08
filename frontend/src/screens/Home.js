@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getSchools } from "../api/client";
+import { getSchools, toggleFavorite, getFavoriteIds } from "../api/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const Home = () => {
@@ -9,6 +9,7 @@ const Home = () => {
   const [schools, setSchools] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalSchools, setTotalSchools] = useState(0);
+  const [favorites, setFavorites] = useState(new Set());
 
   const currentPage = parseInt(searchParams.get("page") || "1");
   const currentSearch = searchParams.get("search") || "";
@@ -24,7 +25,7 @@ const Home = () => {
   const [inputPage, setInputPage] = useState(currentPage);
 
   useEffect(() => {
-    const fetchSchools = async () => {
+    const fetchData = async () => {
       try {
         const response = await getSchools({
           page: currentPage,
@@ -38,14 +39,46 @@ const Home = () => {
         setTotalSchools(response.pagination.totalSchools);
         setInputPage(currentPage);
 
+        const token = localStorage.getItem("token");
+        if (token) {
+          try {
+            const favIds = await getFavoriteIds();
+            setFavorites(new Set(favIds));
+          } catch (err) {
+            console.error(err);
+          }
+        }
+
         window.scrollTo(0, 0);
       } catch (error) {
         console.error(error.message);
       }
     };
 
-    fetchSchools();
+    fetchData();
   }, [currentPage, currentSearch, currentCity, currentType]);
+
+  const handleToggleFavorite = async (e, schoolId) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const response = await toggleFavorite(schoolId);
+      const newFavorites = new Set(favorites);
+      if (response.isFavorite) {
+        newFavorites.add(schoolId);
+      } else {
+        newFavorites.delete(schoolId);
+      }
+      setFavorites(newFavorites);
+    } catch (err) {
+      alert("Erreur lors de la modification des favoris");
+    }
+  };
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -197,15 +230,39 @@ const Home = () => {
               school.school_type &&
               school.school_type.toLowerCase().includes("privé");
             const badgeColor = isPrivate ? "#ffc107" : "#17a2b8";
+            const isFav = favorites.has(school.id);
 
             return (
-              <div key={school.id} className="school-card">
+              <div
+                key={school.id}
+                className="school-card"
+                style={{ position: "relative" }}
+              >
+                <button
+                  onClick={(e) => handleToggleFavorite(e, school.id)}
+                  style={{
+                    position: "absolute",
+                    top: "15px",
+                    right: "15px",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "1.5rem",
+                    zIndex: 10,
+                    color: isFav ? "#e74c3c" : "#ccc",
+                  }}
+                  title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+                >
+                  {isFav ? "❤️" : "🤍"}
+                </button>
+
                 <h3
                   style={{
                     margin: "0 0 10px 0",
                     color: "#333",
                     minHeight: "50px",
                     fontSize: "1.1rem",
+                    paddingRight: "30px",
                   }}
                 >
                   {school.first_name}
