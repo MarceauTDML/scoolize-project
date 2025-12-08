@@ -8,7 +8,31 @@ router.get('/', async (req, res) => {
         res.json(schools);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Erreur lors de la récupération des écoles." });
+        res.status(500).json({ message: "Erreur serveur." });
+    }
+});
+
+router.get('/:id', async (req, res) => {
+    const schoolId = req.params.id;
+    try {
+        const query = `
+            SELECT u.id, u.first_name, u.last_name, u.email, 
+                   d.description, d.address, d.website, d.phone 
+            FROM users u 
+            LEFT JOIN school_details d ON u.id = d.user_id 
+            WHERE u.id = ? AND u.role = 'school'
+        `;
+        
+        const [result] = await db.query(query, [schoolId]);
+
+        if (result.length === 0) {
+            return res.status(404).json({ message: "École introuvable." });
+        }
+
+        res.json(result[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur serveur." });
     }
 });
 

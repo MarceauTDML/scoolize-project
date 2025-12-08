@@ -20,23 +20,46 @@ const Home = () => {
   }, []);
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Liste des Écoles</h1>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1 style={{ margin: 0, fontSize: '2rem', color: '#2c3e50' }}>Établissements disponibles</h1>
       </div>
 
-      <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
+      <p style={{ color: '#666', fontSize: '1.1rem' }}>
+        Découvrez les écoles partenaires et postulez directement via Scoolize.
+      </p>
+
+      <div className="schools-grid">
         {schools.map((school) => (
-          <div key={school.id} style={{ 
-            background: 'white', 
-            padding: '20px', 
-            borderRadius: '10px', 
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-            borderLeft: '5px solid #007bff'
-          }}>
-            <h3 style={{ margin: '0 0 10px 0' }}>{school.first_name}</h3>
-            <p style={{ margin: '0', color: '#666' }}>📍 {school.last_name}</p>
-            <p style={{ margin: '5px 0 0 0', fontSize: '0.9em', color: '#888' }}>✉️ {school.email}</p>
+          <div key={school.id} className="school-card">
+            <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>{school.first_name}</h3>
+            
+            <div style={{ display: 'flex', alignItems: 'center', color: '#666', marginBottom: '10px' }}>
+              <span style={{ marginRight: '8px' }}>📍</span> 
+              <span>{school.last_name}</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', color: '#888', fontSize: '0.9em' }}>
+              <span style={{ marginRight: '8px' }}>✉️</span>
+              <span>{school.email}</span>
+            </div>
+            
+            <button 
+              style={{ 
+                marginTop: '15px', 
+                width: '100%', 
+                padding: '10px', 
+                background: '#e9ecef', 
+                color: '#333', 
+                border: 'none', 
+                borderRadius: '5px', 
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+              onClick={() => navigate(`/school/${school.id}`)}
+            >
+              Voir la fiche
+            </button>
           </div>
         ))}
       </div>
