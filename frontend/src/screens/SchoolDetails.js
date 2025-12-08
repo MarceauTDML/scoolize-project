@@ -62,6 +62,10 @@ const SchoolDetails = () => {
       </div>
     );
 
+  const isPrivate =
+    school.school_type && school.school_type.toLowerCase().includes("privé");
+  const badgeColor = isPrivate ? "#ffc107" : "#17a2b8";
+
   return (
     <div style={{ maxWidth: "800px", margin: "40px auto", padding: "20px" }}>
       <button
@@ -86,10 +90,45 @@ const SchoolDetails = () => {
           boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
         }}
       >
-        <h1 style={{ color: "#007bff", marginTop: 0 }}>{school.first_name}</h1>
-        <h3 style={{ color: "#555", fontWeight: "normal" }}>
-          {school.last_name}
-        </h3>
+        <h1 style={{ color: "#007bff", marginTop: 0, marginBottom: "10px" }}>
+          {school.first_name}
+        </h1>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "15px",
+            marginBottom: "20px",
+          }}
+        >
+          <h3 style={{ color: "#555", fontWeight: "normal", margin: 0 }}>
+            {school.last_name}
+          </h3>
+
+          {school.school_type && (
+            <span
+              style={{
+                backgroundColor: badgeColor,
+                color: isPrivate ? "#333" : "white",
+                padding: "5px 12px",
+                borderRadius: "20px",
+                fontSize: "0.85rem",
+                fontWeight: "bold",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+            >
+              {school.school_type}
+            </span>
+          )}
+
+          {school.region && (
+            <span style={{ color: "#888", fontStyle: "italic" }}>
+              ({school.region})
+            </span>
+          )}
+        </div>
 
         <hr
           style={{ border: "0", borderTop: "1px solid #eee", margin: "20px 0" }}
@@ -119,6 +158,13 @@ const SchoolDetails = () => {
             <p style={{ margin: "5px 0 0", color: "#666" }}>
               {school.address || "Non renseignée"}
             </p>
+            {school.department && (
+              <p
+                style={{ margin: "2px 0 0", fontSize: "0.9em", color: "#888" }}
+              >
+                Département : {school.department}
+              </p>
+            )}
           </div>
           <div>
             <strong>Contact :</strong>
@@ -132,10 +178,10 @@ const SchoolDetails = () => {
             <p style={{ margin: "5px 0 0" }}>
               {school.website ? (
                 <a
-                  href={`http://${school.website}`}
+                  href={school.website}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: "#007bff" }}
+                  style={{ color: "#007bff", fontWeight: "bold" }}
                 >
                   {school.website}
                 </a>
