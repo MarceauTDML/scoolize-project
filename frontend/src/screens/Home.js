@@ -23,12 +23,6 @@ const Home = () => {
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Liste des Écoles</h1>
-        <button 
-            onClick={() => navigate('/login')}
-            style={{ padding: '10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer'}}
-        >
-            Se connecter
-        </button>
       </div>
 
       <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
