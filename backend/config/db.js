@@ -1,4 +1,4 @@
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
 require("dotenv").config();
 
 const pool = mysql.createPool({
@@ -7,10 +7,19 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT,
-
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 });
 
-module.exports = pool.promise();
+pool
+  .getConnection()
+  .then((conn) => {
+    console.log("Connecté à la base de données MariaDB Scoolize");
+    conn.release();
+  })
+  .catch((err) => {
+    console.error("Erreur de connexion à la DB:", err);
+  });
+
+module.exports = pool;
