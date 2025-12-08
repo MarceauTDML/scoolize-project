@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  getSchoolById, 
-  applyToSchool, 
-  toggleFavorite, 
-  getFavoriteIds, 
-  getSchoolNews 
+import {
+  getSchoolById,
+  applyToSchool,
+  toggleFavorite,
+  getFavoriteIds,
+  getSchoolNews,
+  registerForEvent,
+  checkMyEventRegistrations,
 } from "../api/client";
 
 const SchoolDetails = () => {
@@ -15,6 +17,7 @@ const SchoolDetails = () => {
   const [news, setNews] = useState([]);
   const [error, setError] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
+  const [myRegistrations, setMyRegistrations] = useState([]);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -26,7 +29,7 @@ const SchoolDetails = () => {
           const newsData = await getSchoolNews(id);
           setNews(newsData);
         } catch (e) {
-          console.error("Erreur lors du chargement des actualités", e);
+          console.error(e);
         }
 
         const token = localStorage.getItem("token");
@@ -34,6 +37,13 @@ const SchoolDetails = () => {
           const ids = await getFavoriteIds();
           if (ids.includes(parseInt(id))) {
             setIsFavorite(true);
+          }
+
+          try {
+            const myRegs = await checkMyEventRegistrations();
+            setMyRegistrations(myRegs);
+          } catch (e) {
+            console.error(e);
           }
         }
       } catch (err) {
@@ -83,6 +93,29 @@ const SchoolDetails = () => {
       setIsFavorite(response.isFavorite);
     } catch (err) {
       alert("Erreur lors de la modification des favoris");
+    }
+  };
+
+  const handleEventRegister = async (eventId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    if (window.confirm("S'inscrire à cet événement ?")) {
+      try {
+        await registerForEvent(eventId);
+        alert("Inscription demandée !");
+        setMyRegistrations([
+          ...myRegistrations,
+          { event_id: eventId, status: "pending" },
+        ]);
+        const newsData = await getSchoolNews(id);
+        setNews(newsData);
+      } catch (e) {
+        alert(e.message);
+      }
     }
   };
 
@@ -199,63 +232,130 @@ const SchoolDetails = () => {
         </div>
 
         {news.length > 0 && (
-          <div style={{ marginBottom: "30px" }}>
-            <h4
+          <div style={{ marginBottom: "30px", marginTop: "30px" }}>
+            <h3
               style={{
-                marginBottom: "15px",
-                display: "flex",
-                alignItems: "center",
+                borderBottom: "2px solid #eee",
+                paddingBottom: "10px",
+                marginBottom: "20px",
               }}
             >
               Actualités & Événements
-              <span
-                style={{
-                  marginLeft: "10px",
-                  fontSize: "0.8em",
-                  background: "#e9ecef",
-                  padding: "2px 8px",
-                  borderRadius: "10px",
-                }}
-              >
-                {news.length}
-              </span>
-            </h4>
-            <div style={{ display: "grid", gap: "15px" }}>
-              {news.map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    background: "#f8f9fa",
-                    padding: "15px",
-                    borderRadius: "8px",
-                    borderLeft: "4px solid #007bff",
-                  }}
-                >
+            </h3>
+            <div style={{ display: "grid", gap: "20px" }}>
+              {news.map((item) => {
+                const myReg = myRegistrations.find(
+                  (r) => r.event_id === item.id
+                );
+                const isFull =
+                  item.capacity && item.registered_count >= item.capacity;
+
+                return (
                   <div
+                    key={item.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "5px",
+                      background: item.type === "jpo" ? "#fff8e1" : "#f8f9fa",
+                      padding: "20px",
+                      borderRadius: "8px",
+                      borderLeft:
+                        item.type === "jpo"
+                          ? "5px solid #ffc107"
+                          : "5px solid #17a2b8",
                     }}
                   >
-                    <strong style={{ color: "#007bff", fontSize: "1.1em" }}>
-                      {item.title}
-                    </strong>
-                    <small style={{ color: "#888" }}>
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </small>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: "5px",
+                      }}
+                    >
+                      <strong
+                        style={{
+                          color: item.type === "jpo" ? "#d39e00" : "#17a2b8",
+                          fontSize: "1.1em",
+                        }}
+                      >
+                        {item.type === "jpo" ? "📅 JPO : " : ""} {item.title}
+                      </strong>
+                      <small style={{ color: "#888" }}>
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </small>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: "10px 0",
+                        color: "#555",
+                        whiteSpace: "pre-line",
+                      }}
+                    >
+                      {item.content}
+                    </p>
+
+                    {item.type === "jpo" && (
+                      <div
+                        style={{
+                          marginTop: "15px",
+                          paddingTop: "10px",
+                          borderTop: "1px solid rgba(0,0,0,0.1)",
+                        }}
+                      >
+                        <p style={{ margin: "5px 0", fontWeight: "bold" }}>
+                          Date : {new Date(item.event_date).toLocaleString()}
+                        </p>
+                        <p style={{ margin: "5px 0", fontSize: "0.9em" }}>
+                          Places : {item.registered_count}{" "}
+                          {item.capacity ? `/ ${item.capacity}` : "inscrits"}
+                        </p>
+
+                        <div style={{ marginTop: "10px" }}>
+                          {myReg ? (
+                            <span
+                              style={{
+                                padding: "8px 12px",
+                                borderRadius: "5px",
+                                fontWeight: "bold",
+                                background:
+                                  myReg.status === "accepted"
+                                    ? "#d4edda"
+                                    : "#fff3cd",
+                                color:
+                                  myReg.status === "accepted"
+                                    ? "green"
+                                    : "#856404",
+                              }}
+                            >
+                              {myReg.status === "accepted"
+                                ? "Inscription validée"
+                                : "Inscription en attente"}
+                            </span>
+                          ) : isFull ? (
+                            <span style={{ color: "red", fontWeight: "bold" }}>
+                              Complet
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleEventRegister(item.id)}
+                              style={{
+                                padding: "8px 15px",
+                                background: "#007bff",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "5px",
+                                cursor: "pointer",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              S'inscrire à l'événement
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <p
-                    style={{
-                      margin: 0,
-                      color: "#555",
-                      whiteSpace: "pre-line",
-                    }}
-                  >
-                    {item.content}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

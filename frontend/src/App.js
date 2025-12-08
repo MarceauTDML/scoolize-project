@@ -8,6 +8,7 @@ import Home from './screens/Home';
 import SchoolDetails from './screens/SchoolDetails';
 import AdminDashboard from './screens/admin/AdminDashboard';
 import SchoolsMap from './screens/SchoolsMap';
+import StudentCalendar from './screens/StudentCalendar';
 
 import Navbar from './components/Navbar';
 
@@ -21,6 +22,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/school/:id" element={<SchoolDetails />} />
             <Route path="/map" element={<SchoolsMap />} />
+            <Route path="/calendar" element={<StudentCalendar />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
