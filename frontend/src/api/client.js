@@ -52,6 +52,10 @@ export const getSchoolById = (id) => {
   return request(`/schools/${id}`, 'GET');
 };
 
+export const getAllSchoolLocations = () => {
+  return request('/schools/locations', 'GET');
+};
+
 export const applyToSchool = (schoolId) => {
   return request('/applications', 'POST', { school_id: schoolId });
 };
@@ -92,6 +96,14 @@ export const getFavoriteIds = () => {
   return request('/favorites/ids', 'GET');
 };
 
-export const getAllSchoolLocations = () => {
-  return request('/schools/locations', 'GET');
+export const createNews = (newsData) => {
+  return request('/news', 'POST', newsData);
+};
+
+export const deleteNews = (newsId) => {
+  return request(`/news/${newsId}`, 'DELETE');
+};
+
+export const getSchoolNews = (schoolId) => {
+  return request(`/news/school/${schoolId}`, 'GET');
 };
