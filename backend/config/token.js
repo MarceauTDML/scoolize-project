@@ -1,20 +1,13 @@
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
+const jwt = require('jsonwebtoken');
 
-const generateToken = (id, role) => {
-  if (!process.env.JWT_SECRET) {
-    console.error(
-      "ERREUR CRITIQUE : JWT_SECRET manquant dans le fichier .env !"
+const SECRET_KEY = process.env.JWT_SECRET || 'scoolize_super_secret_key_2024';
+
+exports.generateToken = (user) => {
+    return jwt.sign(
+        { id: user.id, role: user.role },
+        SECRET_KEY,
+        { expiresIn: '24h' }
     );
-    throw new Error("Configuration serveur invalide");
-  }
-  const payload = {
-    id: id,
-    role: role,
-  };
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
 };
 
-module.exports = generateToken;
+exports.SECRET_KEY = SECRET_KEY;
