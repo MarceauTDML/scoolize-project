@@ -62,3 +62,19 @@ export const validateSchool = (id) => {
 export const rejectSchool = (id) => {
   return request(`/admin/reject/${id}`, 'DELETE');
 };
+
+export const applyToSchool = (schoolId) => {
+  return request('/applications', 'POST', { school_id: schoolId });
+};
+
+export const getMyApplications = () => {
+  return request('/applications/my-applications', 'GET');
+};
+
+export const updateApplicationStatus = (applicationId, status) => {
+  return request(`/applications/${applicationId}/status`, 'PUT', { status });
+};
+
+export const getStudentApplications = () => {
+  return request('/applications/my-student-applications', 'GET');
+};
