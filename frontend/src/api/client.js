@@ -170,3 +170,7 @@ export const saveGrades = (context, grades) => {
 export const getGrades = () => {
   return request('/grades', 'GET');
 };
+
+export const getGradesByStudent = (studentId) => {
+  return request(`/grades/student/${studentId}`, 'GET');
+};
