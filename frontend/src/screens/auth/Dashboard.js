@@ -203,6 +203,19 @@ const Dashboard = () => {
         }}
       >
         <h1>Bonjour, {user.first_name}</h1>
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: "10px",
+            background: "#dc3545",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Déconnexion
+        </button>
       </div>
 
       {user.role === "school" && (
@@ -300,7 +313,7 @@ const Dashboard = () => {
                   }}
                 >
                   <option value="news">Actualité classique</option>
-                  <option value="jpo">Événement / JPO</option>
+                  <option value="jpo">📅 Événement / JPO</option>
                 </select>
 
                 <input
@@ -427,7 +440,8 @@ const Dashboard = () => {
                     >
                       <strong
                         style={{
-                          color: news.type === "jpo" ? "#e0a800" : "#17a2b8",
+                          color:
+                            news.type === "jpo" ? "#e0a800" : "#17a2b8",
                         }}
                       >
                         {news.type === "jpo" ? "📅 JPO" : "📰 NEWS"} :{" "}
@@ -509,9 +523,13 @@ const Dashboard = () => {
                 border: "2px solid #333",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
                 <h3>Inscrits à l'événement</h3>
-                <button onClick={() => setSelectedEventId(null)}>Fermer</button>
+                <button onClick={() => setSelectedEventId(null)}>
+                  Fermer
+                </button>
               </div>
               {eventRegistrations.length === 0 ? (
                 <p>Aucun inscrit pour le moment.</p>
@@ -567,22 +585,28 @@ const Dashboard = () => {
                             <>
                               <button
                                 onClick={() =>
-                                  handleRegistrationStatus(reg.id, "accepted")
+                                  handleRegistrationStatus(
+                                    reg.id,
+                                    "accepted"
+                                  )
                                 }
                                 style={{
                                   marginRight: "5px",
                                   cursor: "pointer",
                                 }}
                               >
-                                accepter
+                                ✅
                               </button>
                               <button
                                 onClick={() =>
-                                  handleRegistrationStatus(reg.id, "rejected")
+                                  handleRegistrationStatus(
+                                    reg.id,
+                                    "rejected"
+                                  )
                                 }
                                 style={{ cursor: "pointer" }}
                               >
-                                refuser
+                                ❌
                               </button>
                             </>
                           )}
@@ -599,40 +623,17 @@ const Dashboard = () => {
 
       {user.role === "student" && (
         <div>
-          <div
-            style={{
-              marginBottom: "30px",
-              background: "#e3f2fd",
-              padding: "20px",
-              borderRadius: "10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              border: "1px solid #90caf9",
-            }}
-          >
-            <div>
-              <h2 style={{ margin: "0 0 5px 0", color: "#0d47a1" }}>
-                Mon dossier élève
-              </h2>
-              <p style={{ margin: 0, color: "#1565c0" }}>
-                Complétez votre profil pour vos candidatures.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate("/student-profile")}
-              style={{
-                padding: "12px 20px",
-                background: "#0d47a1",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-                fontWeight: "bold",
-              }}
-            >
-              Accéder à mon dossier
-            </button>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+              <div style={{ background: '#e3f2fd', padding: '20px', borderRadius: '10px', border: '1px solid #90caf9' }}>
+                  <h3 style={{ margin: '0 0 10px 0', color: '#0d47a1' }}>📂 Mon Dossier</h3>
+                  <button onClick={() => navigate('/student-profile')} style={{ padding: '10px', width:'100%', background: '#0d47a1', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Gérer mon profil</button>
+              </div>
+
+              <div style={{ background: '#e8f5e9', padding: '20px', borderRadius: '10px', border: '1px solid #a5d6a7' }}>
+                  <h3 style={{ margin: '0 0 10px 0', color: '#1b5e20' }}>📝 Mes Notes</h3>
+                  <button onClick={() => navigate('/student-grades')} style={{ padding: '10px', width:'100%', background: '#1b5e20', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Importer mes bulletins</button>
+              </div>
           </div>
 
           <div
@@ -642,7 +643,7 @@ const Dashboard = () => {
               alignItems: "center",
             }}
           >
-            <h2>Mes candidatures ({myApplications.length})</h2>
+            <h2>Mes Candidatures ({myApplications.length})</h2>
             <button
               onClick={() => navigate("/")}
               style={{
@@ -734,7 +735,9 @@ const Dashboard = () => {
           <hr style={{ borderTop: "1px solid #ddd", margin: "40px 0" }} />
 
           <div style={{ marginBottom: "40px" }}>
-            <h2>Mes événements & JPO ({acceptedEvents.length})</h2>
+            <h2>
+              Mes Événements & JPO confirmés ({acceptedEvents.length})
+            </h2>
 
             {acceptedEvents.length === 0 ? (
               <p style={{ color: "#666" }}>
@@ -795,7 +798,7 @@ const Dashboard = () => {
 
           <hr style={{ borderTop: "1px solid #ddd", margin: "40px 0" }} />
 
-          <h2>Mes écoles favorites ({myFavorites.length}) ❤️</h2>
+          <h2>Mes Écoles Favorites ({myFavorites.length}) ❤️</h2>
           {myFavorites.length === 0 ? (
             <p style={{ color: "#666" }}>
               Vous n'avez ajouté aucune école en favori.
@@ -834,6 +837,7 @@ const Dashboard = () => {
                       marginBottom: "10px",
                     }}
                   >
+                    <span style={{ marginRight: "8px" }}>📍</span>
                     <span>{fav.last_name}</span>
                   </div>
                   <button
@@ -849,8 +853,12 @@ const Dashboard = () => {
                       cursor: "pointer",
                       fontWeight: "600",
                     }}
-                    onMouseOver={(e) => (e.target.style.background = "#dbe2e8")}
-                    onMouseOut={(e) => (e.target.style.background = "#e9ecef")}
+                    onMouseOver={(e) =>
+                      (e.target.style.background = "#dbe2e8")
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.style.background = "#e9ecef")
+                    }
                   >
                     Voir la fiche
                   </button>
