@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
+const authMiddleware = require("../middleware/security");
 
 router.get("/locations", async (req, res) => {
   try {
@@ -115,6 +116,75 @@ router.get("/:id", async (req, res) => {
       .status(500)
       .json({ message: "Erreur serveur lors de la récupération du détail." });
   }
+});
+
+router.get('/recommended', authMiddleware, async (req, res) => {
+    const studentId = req.user.id;
+
+    if (req.user.role !== 'student') {
+        return res.status(403).json({ message: "Réservé aux étudiants" });
+    }
+
+    try {
+        const [grades] = await db.query(
+            "SELECT subject FROM student_grades WHERE user_id = ? AND is_specialty = 1", 
+            [studentId]
+        );
+
+        if (grades.length === 0) {
+            const [defaultSchools] = await db.query("SELECT * FROM users WHERE role = 'school' LIMIT 20");
+            return res.json({ data: defaultSchools, pagination: {}, isRecommendation: false });
+        }
+
+        const subjects = grades.map(g => g.subject.toLowerCase());
+        let targetTags = [];
+
+        if (subjects.some(s => s.includes('art') || s.includes('hlp') || s.includes('littérature') || s.includes('philo'))) {
+            targetTags.push('PROFILE_ART', 'PROFILE_LETTRES');
+        }
+        if (subjects.some(s => s.includes('math') || s.includes('physique') || s.includes('si') || s.includes('nsi') || s.includes('svt'))) {
+            targetTags.push('PROFILE_SCIENCE');
+        }
+        if (subjects.some(s => s.includes('ses') || s.includes('eco') || s.includes('gestion'))) {
+            targetTags.push('PROFILE_ECO');
+        }
+        if (subjects.some(s => s.includes('svt') || s.includes('biologie'))) {
+            targetTags.push('PROFILE_SANTE');
+        }
+
+        console.log("Algo cherche les tags :", targetTags);
+
+        if (targetTags.length === 0) {
+             const [defaultSchools] = await db.query("SELECT * FROM users WHERE role = 'school' LIMIT 20");
+             return res.json({ data: defaultSchools, pagination: {}, isRecommendation: false });
+        }
+
+        const likeConditions = targetTags.map(() => "d.description LIKE ?").join(' OR ');
+        const queryParams = targetTags.map(tag => `%${tag}%`);
+
+        const query = `
+            SELECT u.id, u.first_name, u.last_name, u.email, 
+                   d.school_type, d.region, d.department, d.description
+            FROM users u
+            LEFT JOIN school_details d ON u.id = d.user_id
+            WHERE u.role = 'school' AND (${likeConditions})
+            LIMIT 50
+        `;
+
+        const [schools] = await db.query(query, queryParams);
+
+        const schoolsWithScore = schools.map(s => ({ ...s, match_score: 100 }));
+
+        res.json({
+            data: schoolsWithScore,
+            pagination: { totalSchools: schools.length },
+            isRecommendation: true
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur algorithme" });
+    }
 });
 
 module.exports = router;
