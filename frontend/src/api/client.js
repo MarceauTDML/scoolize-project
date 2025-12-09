@@ -139,3 +139,11 @@ export const getSchoolReviews = (schoolId) => {
 export const checkCanReview = (schoolId) => {
   return request(`/reviews/can-review/${schoolId}`, 'GET');
 };
+
+export const getStudentProfile = () => {
+  return request('/profile', 'GET');
+};
+
+export const createStudentProfile = (data) => {
+  return request('/profile', 'POST', data);
+};
