@@ -12,6 +12,7 @@ import {
   getEventRegistrations,
   updateEventRegistration,
   getMyEventRegistrations,
+  getGradesByStudent,
 } from "../../api/client";
 
 const Dashboard = () => {
@@ -31,9 +32,12 @@ const Dashboard = () => {
     event_date: "",
     capacity: "",
   });
-
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [eventRegistrations, setEventRegistrations] = useState([]);
+
+  const [showGradesModal, setShowGradesModal] = useState(false);
+  const [selectedStudentGrades, setSelectedStudentGrades] = useState([]);
+  const [gradesTab, setGradesTab] = useState("premiere");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -93,6 +97,15 @@ const Dashboard = () => {
     }
   };
 
+  const fetchMyNews = async (schoolId) => {
+    try {
+      const data = await getSchoolNews(schoolId);
+      setNewsList(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleStatusChange = async (appId, newStatus) => {
     try {
       await updateApplicationStatus(appId, newStatus);
@@ -110,15 +123,6 @@ const Dashboard = () => {
       } catch (err) {
         alert(err.message);
       }
-    }
-  };
-
-  const fetchMyNews = async (schoolId) => {
-    try {
-      const data = await getSchoolNews(schoolId);
-      setNewsList(data);
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -177,6 +181,17 @@ const Dashboard = () => {
     navigate("/login");
   };
 
+  const handleViewStudentFolder = async (studentId) => {
+    try {
+      const grades = await getGradesByStudent(studentId);
+      setSelectedStudentGrades(grades);
+      setShowGradesModal(true);
+      setGradesTab("premiere");
+    } catch (err) {
+      alert("Impossible de charger le dossier scolaire de cet élève.");
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "accepted":
@@ -186,6 +201,29 @@ const Dashboard = () => {
       default:
         return { color: "#856404", label: "En attente", bg: "#fff3cd" };
     }
+  };
+
+  const formatContext = (ctx) => {
+    const map = {
+      premiere_t1: "Trimestre 1",
+      premiere_t2: "Trimestre 2",
+      premiere_t3: "Trimestre 3",
+      premiere_s1: "Semestre 1",
+      premiere_s2: "Semestre 2",
+      terminale_t1: "Trimestre 1",
+      terminale_t2: "Trimestre 2",
+      terminale_t3: "Trimestre 3",
+      terminale_s1: "Semestre 1",
+      terminale_s2: "Semestre 2",
+      bac_francais: "Épreuves Anticipées",
+      bac_final: "Épreuves Terminales",
+    };
+    return map[ctx] || ctx;
+  };
+
+  const getGradesForTab = (tab) => {
+    if (!selectedStudentGrades) return [];
+    return selectedStudentGrades.filter((g) => g.context.startsWith(tab));
   };
 
   if (!user) return null;
@@ -237,20 +275,70 @@ const Dashboard = () => {
                       borderLeft: "5px solid #007bff",
                     }}
                   >
-                    <strong>
-                      {app.first_name} {app.last_name}
-                    </strong>{" "}
-                    ({app.email}) - {app.status}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontSize: "1.1rem" }}>
+                          {app.first_name} {app.last_name}
+                        </strong>
+                        <p style={{ margin: "5px 0", color: "#666" }}>
+                          {app.email}
+                        </p>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontWeight: "bold",
+                            color:
+                              app.status === "pending"
+                                ? "#e0a800"
+                                : app.status === "accepted"
+                                ? "green"
+                                : "red",
+                          }}
+                        >
+                          Statut : {app.status}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          handleViewStudentFolder(app.student_id || app.id)
+                        }
+                        style={{
+                          padding: "8px 15px",
+                          background: "#17a2b8",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        Voir le dossier
+                      </button>
+                    </div>
+
                     {app.status === "pending" && (
-                      <div style={{ marginTop: "5px" }}>
+                      <div
+                        style={{
+                          marginTop: "15px",
+                          paddingTop: "10px",
+                          borderTop: "1px solid #eee",
+                        }}
+                      >
                         <button
                           onClick={() => handleStatusChange(app.id, "accepted")}
                           style={{
-                            marginRight: "5px",
+                            marginRight: "10px",
                             background: "green",
                             color: "white",
                             border: "none",
-                            padding: "5px",
+                            padding: "8px 15px",
                             borderRadius: "3px",
                             cursor: "pointer",
                           }}
@@ -263,7 +351,7 @@ const Dashboard = () => {
                             background: "red",
                             color: "white",
                             border: "none",
-                            padding: "5px",
+                            padding: "8px 15px",
                             borderRadius: "3px",
                             cursor: "pointer",
                           }}
@@ -313,9 +401,8 @@ const Dashboard = () => {
                   }}
                 >
                   <option value="news">Actualité classique</option>
-                  <option value="jpo">📅 Événement / JPO</option>
+                  <option value="jpo">Événement / JPO</option>
                 </select>
-
                 <input
                   type="text"
                   placeholder="Titre"
@@ -330,7 +417,6 @@ const Dashboard = () => {
                     border: "1px solid #ddd",
                   }}
                 />
-
                 <textarea
                   placeholder="Description..."
                   value={newsForm.content}
@@ -345,12 +431,11 @@ const Dashboard = () => {
                     border: "1px solid #ddd",
                   }}
                 />
-
                 {newsForm.type === "jpo" && (
                   <div style={{ display: "flex", gap: "10px" }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: "0.8em", color: "#666" }}>
-                        Date de l'événement
+                        Date
                       </label>
                       <input
                         type="datetime-local"
@@ -372,7 +457,7 @@ const Dashboard = () => {
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: "0.8em", color: "#666" }}>
-                        Capacité Max (optionnel)
+                        Capacité
                       </label>
                       <input
                         type="number"
@@ -391,7 +476,6 @@ const Dashboard = () => {
                     </div>
                   </div>
                 )}
-
                 <button
                   type="submit"
                   style={{
@@ -408,7 +492,6 @@ const Dashboard = () => {
                 </button>
               </form>
             </div>
-
             <div>
               <h3>Mes Publications ({newsList.length})</h3>
               <div
@@ -440,8 +523,7 @@ const Dashboard = () => {
                     >
                       <strong
                         style={{
-                          color:
-                            news.type === "jpo" ? "#e0a800" : "#17a2b8",
+                          color: news.type === "jpo" ? "#e0a800" : "#17a2b8",
                         }}
                       >
                         {news.type === "jpo" ? "📅 JPO" : "📰 NEWS"} :{" "}
@@ -455,10 +537,9 @@ const Dashboard = () => {
                           cursor: "pointer",
                         }}
                       >
-                        🗑️
+                        Supprimer
                       </button>
                     </div>
-
                     <p
                       style={{
                         fontSize: "0.9rem",
@@ -468,7 +549,6 @@ const Dashboard = () => {
                     >
                       {news.content}
                     </p>
-
                     {news.type === "jpo" && (
                       <div
                         style={{
@@ -479,15 +559,7 @@ const Dashboard = () => {
                         }}
                       >
                         <small>
-                          Le :{" "}
-                          {news.event_date
-                            ? new Date(news.event_date).toLocaleString()
-                            : "Date non définie"}
-                        </small>
-                        <br />
-                        <small>
-                          Inscrits : <strong>{news.registered_count}</strong>{" "}
-                          {news.capacity ? `/ ${news.capacity}` : ""}
+                          Inscrits : <strong>{news.registered_count}</strong>
                         </small>
                         <button
                           onClick={() => handleViewRegistrations(news.id)}
@@ -516,106 +588,267 @@ const Dashboard = () => {
           {selectedEventId && (
             <div
               style={{
-                marginTop: "40px",
-                background: "white",
-                padding: "20px",
-                borderRadius: "10px",
-                border: "2px solid #333",
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background: "rgba(0,0,0,0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
               }}
             >
               <div
-                style={{ display: "flex", justifyContent: "space-between" }}
+                style={{
+                  background: "white",
+                  padding: "20px",
+                  borderRadius: "10px",
+                  width: "600px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                }}
               >
-                <h3>Inscrits à l'événement</h3>
-                <button onClick={() => setSelectedEventId(null)}>
-                  Fermer
-                </button>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <h3>Inscrits</h3>
+                  <button
+                    onClick={() => setSelectedEventId(null)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Fermer
+                  </button>
+                </div>
+                {eventRegistrations.map((reg) => (
+                  <div
+                    key={reg.id}
+                    style={{
+                      borderBottom: "1px solid #eee",
+                      padding: "10px 0",
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span>
+                      {reg.first_name} {reg.last_name} ({reg.email})
+                    </span>
+                    <div>
+                      <strong style={{ marginRight: "10px" }}>
+                        {reg.status}
+                      </strong>
+                      {reg.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() =>
+                              handleRegistrationStatus(reg.id, "accepted")
+                            }
+                            style={{ marginRight: "5px" }}
+                          >
+                            ✅
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleRegistrationStatus(reg.id, "rejected")
+                            }
+                          >
+                            ❌
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              {eventRegistrations.length === 0 ? (
-                <p>Aucun inscrit pour le moment.</p>
-              ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr
-                      style={{
-                        textAlign: "left",
-                        borderBottom: "1px solid #ddd",
-                      }}
-                    >
-                      <th>Nom</th>
-                      <th>Email</th>
-                      <th>Statut</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eventRegistrations.map((reg) => (
-                      <tr
-                        key={reg.id}
-                        style={{ borderBottom: "1px solid #eee" }}
-                      >
-                        <td style={{ padding: "10px 0" }}>
-                          {reg.first_name} {reg.last_name}
-                        </td>
-                        <td>{reg.email}</td>
-                        <td>
-                          <span
+            </div>
+          )}
+
+          {showGradesModal && selectedStudentGrades && (
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background: "rgba(0,0,0,0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  background: "white",
+                  padding: "30px",
+                  borderRadius: "10px",
+                  width: "800px",
+                  maxHeight: "90vh",
+                  overflowY: "auto",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "20px",
+                    borderBottom: "1px solid #eee",
+                    paddingBottom: "10px",
+                  }}
+                >
+                  <h2 style={{ margin: 0, color: "#007bff" }}>
+                    Dossier Scolaire
+                  </h2>
+                  <button
+                    onClick={() => setShowGradesModal(false)}
+                    style={{
+                      cursor: "pointer",
+                      padding: "8px 15px",
+                      border: "none",
+                      background: "#dc3545",
+                      color: "white",
+                      borderRadius: "5px",
+                    }}
+                  >
+                    Fermer
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    marginBottom: "20px",
+                    borderBottom: "2px solid #eee",
+                  }}
+                >
+                  <button
+                    onClick={() => setGradesTab("premiere")}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      background:
+                        gradesTab === "premiere" ? "#e3f2fd" : "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Première
+                  </button>
+                  <button
+                    onClick={() => setGradesTab("terminale")}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      background:
+                        gradesTab === "terminale" ? "#e3f2fd" : "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Terminale
+                  </button>
+                  <button
+                    onClick={() => setGradesTab("bac")}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      background:
+                        gradesTab === "bac" ? "#e3f2fd" : "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    BAC
+                  </button>
+                </div>
+
+                {getGradesForTab(gradesTab).length === 0 ? (
+                  <p
+                    style={{
+                      textAlign: "center",
+                      color: "#666",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Aucune note disponible pour cette année.
+                  </p>
+                ) : (
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
+                        <th
+                          style={{ padding: "10px", border: "1px solid #ddd" }}
+                        >
+                          Contexte
+                        </th>
+                        <th
+                          style={{ padding: "10px", border: "1px solid #ddd" }}
+                        >
+                          Matière
+                        </th>
+                        <th
+                          style={{ padding: "10px", border: "1px solid #ddd" }}
+                        >
+                          Note
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getGradesForTab(gradesTab).map((grade, idx) => (
+                        <tr key={idx}>
+                          <td
                             style={{
-                              padding: "2px 6px",
-                              borderRadius: "4px",
-                              background:
-                                reg.status === "accepted"
-                                  ? "#d4edda"
-                                  : reg.status === "rejected"
-                                  ? "#f8d7da"
-                                  : "#fff3cd",
-                              color:
-                                reg.status === "accepted"
-                                  ? "green"
-                                  : reg.status === "rejected"
-                                  ? "red"
-                                  : "#856404",
+                              padding: "10px",
+                              border: "1px solid #ddd",
+                              color: "#666",
                             }}
                           >
-                            {reg.status}
-                          </span>
-                        </td>
-                        <td>
-                          {reg.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  handleRegistrationStatus(
-                                    reg.id,
-                                    "accepted"
-                                  )
-                                }
-                                style={{
-                                  marginRight: "5px",
-                                  cursor: "pointer",
-                                }}
+                            {formatContext(grade.context)}
+                          </td>
+                          <td
+                            style={{
+                              padding: "10px",
+                              border: "1px solid #ddd",
+                              fontWeight: grade.is_specialty
+                                ? "bold"
+                                : "normal",
+                            }}
+                          >
+                            {grade.subject}{" "}
+                            {grade.is_specialty && (
+                              <span
+                                style={{ fontSize: "0.8em", color: "#28a745" }}
                               >
-                                ✅
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleRegistrationStatus(
-                                    reg.id,
-                                    "rejected"
-                                  )
-                                }
-                                style={{ cursor: "pointer" }}
-                              >
-                                ❌
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                                (Spé)
+                              </span>
+                            )}
+                          </td>
+                          <td
+                            style={{
+                              padding: "10px",
+                              border: "1px solid #ddd",
+                              fontWeight: "bold",
+                              color: "#007bff",
+                            }}
+                          >
+                            {grade.grade}/20
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -623,17 +856,69 @@ const Dashboard = () => {
 
       {user.role === "student" && (
         <div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-              <div style={{ background: '#e3f2fd', padding: '20px', borderRadius: '10px', border: '1px solid #90caf9' }}>
-                  <h3 style={{ margin: '0 0 10px 0', color: '#0d47a1' }}>📂 Mon Dossier</h3>
-                  <button onClick={() => navigate('/student-profile')} style={{ padding: '10px', width:'100%', background: '#0d47a1', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Gérer mon profil</button>
-              </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "20px",
+              marginBottom: "30px",
+            }}
+          >
+            <div
+              style={{
+                background: "#e3f2fd",
+                padding: "20px",
+                borderRadius: "10px",
+                border: "1px solid #90caf9",
+              }}
+            >
+              <h3 style={{ margin: "0 0 10px 0", color: "#0d47a1" }}>
+                Mon Dossier
+              </h3>
+              <button
+                onClick={() => navigate("/student-profile")}
+                style={{
+                  padding: "10px",
+                  width: "100%",
+                  background: "#0d47a1",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Gérer mon profil
+              </button>
+            </div>
 
-              <div style={{ background: '#e8f5e9', padding: '20px', borderRadius: '10px', border: '1px solid #a5d6a7' }}>
-                  <h3 style={{ margin: '0 0 10px 0', color: '#1b5e20' }}>📝 Mes Notes</h3>
-                  <button onClick={() => navigate('/student-grades')} style={{ padding: '10px', width:'100%', background: '#1b5e20', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Importer mes bulletins</button>
-              </div>
+            <div
+              style={{
+                background: "#e8f5e9",
+                padding: "20px",
+                borderRadius: "10px",
+                border: "1px solid #a5d6a7",
+              }}
+            >
+              <h3 style={{ margin: "0 0 10px 0", color: "#1b5e20" }}>
+                Mes Notes
+              </h3>
+              <button
+                onClick={() => navigate("/student-grades")}
+                style={{
+                  padding: "10px",
+                  width: "100%",
+                  background: "#1b5e20",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Importer mes bulletins
+              </button>
+            </div>
           </div>
 
           <div
@@ -735,9 +1020,7 @@ const Dashboard = () => {
           <hr style={{ borderTop: "1px solid #ddd", margin: "40px 0" }} />
 
           <div style={{ marginBottom: "40px" }}>
-            <h2>
-              Mes Événements & JPO confirmés ({acceptedEvents.length})
-            </h2>
+            <h2>Mes Événements & JPO confirmés ({acceptedEvents.length})</h2>
 
             {acceptedEvents.length === 0 ? (
               <p style={{ color: "#666" }}>
@@ -853,12 +1136,8 @@ const Dashboard = () => {
                       cursor: "pointer",
                       fontWeight: "600",
                     }}
-                    onMouseOver={(e) =>
-                      (e.target.style.background = "#dbe2e8")
-                    }
-                    onMouseOut={(e) =>
-                      (e.target.style.background = "#e9ecef")
-                    }
+                    onMouseOver={(e) => (e.target.style.background = "#dbe2e8")}
+                    onMouseOut={(e) => (e.target.style.background = "#e9ecef")}
                   >
                     Voir la fiche
                   </button>

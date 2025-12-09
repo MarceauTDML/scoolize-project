@@ -41,7 +41,7 @@ router.get("/my-applications", authMiddleware, async (req, res) => {
 
   try {
     const query = `
-            SELECT a.id, a.status, a.created_at,
+            SELECT a.id, a.status, a.created_at, a.student_id, 
                    u.first_name, u.last_name, u.email
             FROM applications a
             JOIN users u ON a.student_id = u.id
@@ -51,6 +51,7 @@ router.get("/my-applications", authMiddleware, async (req, res) => {
     const [results] = await db.query(query, [schoolId]);
     res.json(results);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
@@ -85,15 +86,15 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/my-student-applications', authMiddleware, async (req, res) => {
-    const studentId = req.user.id;
+router.get("/my-student-applications", authMiddleware, async (req, res) => {
+  const studentId = req.user.id;
 
-    if (req.user.role !== 'student') {
-        return res.status(403).json({ message: "Accès réservé aux étudiants." });
-    }
+  if (req.user.role !== "student") {
+    return res.status(403).json({ message: "Accès réservé aux étudiants." });
+  }
 
-    try {
-        const query = `
+  try {
+    const query = `
             SELECT a.id, a.status, a.created_at,
                    u.first_name AS school_name, u.last_name AS school_city, u.email AS school_email,
                    d.website
@@ -103,12 +104,12 @@ router.get('/my-student-applications', authMiddleware, async (req, res) => {
             WHERE a.student_id = ?
             ORDER BY a.created_at DESC
         `;
-        const [results] = await db.query(query, [studentId]);
-        res.json(results);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Erreur serveur" });
-    }
+    const [results] = await db.query(query, [studentId]);
+    res.json(results);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
 });
 
 module.exports = router;
