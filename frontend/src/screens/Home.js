@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { getSchools, toggleFavorite, getFavoriteIds } from "../api/client";
+import {
+  getSchools,
+  getRecommendedSchools,
+  toggleFavorite,
+  getFavoriteIds,
+} from "../api/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const Home = () => {
@@ -10,6 +15,8 @@ const Home = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalSchools, setTotalSchools] = useState(0);
   const [favorites, setFavorites] = useState(new Set());
+
+  const [isRecommendationMode, setIsRecommendationMode] = useState(false);
 
   const currentPage = parseInt(searchParams.get("page") || "1");
   const currentSearch = searchParams.get("search") || "";
@@ -27,19 +34,45 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await getSchools({
-          page: currentPage,
-          search: currentSearch,
-          city: currentCity,
-          type: currentType,
-        });
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+        let response;
+
+        if (
+          token &&
+          user.role === "student" &&
+          !currentSearch &&
+          !currentCity &&
+          !currentType &&
+          currentPage === 1
+        ) {
+          try {
+            response = await getRecommendedSchools();
+            setIsRecommendationMode(true);
+          } catch (e) {
+            response = await getSchools({ page: 1 });
+            setIsRecommendationMode(false);
+          }
+        } else {
+          response = await getSchools({
+            page: currentPage,
+            search: currentSearch,
+            city: currentCity,
+            type: currentType,
+          });
+          setIsRecommendationMode(false);
+        }
 
         setSchools(response.data);
-        setTotalPages(response.pagination.totalPages);
-        setTotalSchools(response.pagination.totalSchools);
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages || 1);
+          setTotalSchools(
+            response.pagination.totalSchools || response.data.length
+          );
+        }
         setInputPage(currentPage);
 
-        const token = localStorage.getItem("token");
         if (token) {
           try {
             const favIds = await getFavoriteIds();
@@ -116,10 +149,14 @@ const Home = () => {
         <h1
           style={{ margin: "0 0 10px 0", fontSize: "2rem", color: "#2c3e50" }}
         >
-          Trouvez votre établissement
+          {isRecommendationMode
+            ? "Établissements recommandés pour vous"
+            : "Trouvez votre établissement"}
         </h1>
         <p style={{ color: "#666", fontSize: "1.1rem", margin: 0 }}>
-          {totalSchools} établissements disponibles
+          {isRecommendationMode
+            ? "Sélection personnalisée basée sur vos notes et spécialités"
+            : `${totalSchools} établissements disponibles`}
         </p>
       </div>
 
@@ -221,7 +258,10 @@ const Home = () => {
       {schools.length === 0 ? (
         <div style={{ textAlign: "center", padding: "50px", color: "#666" }}>
           <h3>Aucun résultat trouvé</h3>
-          <p>Essayez de modifier vos filtres.</p>
+          <p>
+            Essayez de modifier vos filtres ou de remplir votre dossier
+            scolaire.
+          </p>
         </div>
       ) : (
         <div className="schools-grid">
@@ -231,15 +271,42 @@ const Home = () => {
               school.school_type.toLowerCase().includes("privé");
             const badgeColor = isPrivate ? "#ffc107" : "#17a2b8";
             const isFav = favorites.has(school.id);
-
             const rating = parseFloat(school.average_rating) || 0;
+
+            const isMatch = isRecommendationMode && school.match_score > 0;
 
             return (
               <div
                 key={school.id}
                 className="school-card"
-                style={{ position: "relative" }}
+                style={{
+                  position: "relative",
+                  border: isMatch ? "2px solid #28a745" : "none",
+                  boxShadow: isMatch
+                    ? "0 4px 12px rgba(40, 167, 69, 0.2)"
+                    : "0 2px 8px rgba(0,0,0,0.05)",
+                }}
               >
+                {isMatch && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "-12px",
+                      left: "15px",
+                      background: "#28a745",
+                      color: "white",
+                      padding: "4px 12px",
+                      borderRadius: "20px",
+                      fontSize: "0.8rem",
+                      fontWeight: "bold",
+                      zIndex: 5,
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    ✨ Recommandé
+                  </div>
+                )}
+
                 <button
                   onClick={(e) => handleToggleFavorite(e, school.id)}
                   style={{
@@ -259,7 +326,6 @@ const Home = () => {
                 </button>
 
                 <div style={{ marginRight: "40px" }}>
-                  {" "}
                   <h3
                     style={{
                       margin: "0 0 5px 0",
@@ -276,13 +342,15 @@ const Home = () => {
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "8px",
                     marginBottom: "15px",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
                   <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+                    style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
                   >
                     {school.school_type && (
                       <span
@@ -342,6 +410,7 @@ const Home = () => {
                     fontSize: "0.95rem",
                   }}
                 >
+                  <span style={{ marginRight: "8px" }}>📍</span>
                   <span>{school.last_name}</span>
                 </div>
 
@@ -370,7 +439,7 @@ const Home = () => {
         </div>
       )}
 
-      {schools.length > 0 && (
+      {!isRecommendationMode && schools.length > 0 && (
         <div
           style={{
             display: "flex",
