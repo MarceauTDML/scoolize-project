@@ -147,3 +147,26 @@ export const getStudentProfile = () => {
 export const createStudentProfile = (data) => {
   return request('/profile', 'POST', data);
 };
+
+export const uploadTranscript = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const token = localStorage.getItem('token');
+  
+  return fetch(`${API_URL}/grades/parse`, {
+      method: 'POST',
+      headers: { 
+          'Authorization': `Bearer ${token}` 
+      },
+      body: formData
+  }).then(res => res.json());
+};
+
+export const saveGrades = (context, grades) => {
+  return request('/grades/save', 'POST', { context, grades });
+};
+
+export const getGrades = () => {
+  return request('/grades', 'GET');
+};

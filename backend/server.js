@@ -11,6 +11,7 @@ const favoritesRoute = require('./routes/favorites');
 const newsRoute = require('./routes/news');
 const reviewsRoute = require('./routes/reviews');
 const profileRoute = require('./routes/profile');
+const gradesRoute = require('./routes/grades');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/favorites', favoritesRoute);
 app.use('/api/news', newsRoute);
 app.use('/api/reviews', reviewsRoute);
 app.use('/api/profile', profileRoute);
+app.use('/api/grades', gradesRoute);
 
 app.get("/", (req, res) => {
   res.send("API Scoolize en ligne");
