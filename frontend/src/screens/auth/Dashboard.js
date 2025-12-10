@@ -18,6 +18,8 @@ import {
   deleteSchoolQuestion,
   confirmApplication,
   getRecommendedSchools,
+  getStudentProfileById,
+  DIPLOMA_URL_BASE,
 } from "../../api/client";
 
 const Dashboard = () => {
@@ -38,12 +40,14 @@ const Dashboard = () => {
     event_date: "",
     capacity: "",
   });
-
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [eventRegistrations, setEventRegistrations] = useState([]);
+
   const [showGradesModal, setShowGradesModal] = useState(false);
   const [selectedStudentGrades, setSelectedStudentGrades] = useState([]);
+  const [selectedStudentProfile, setSelectedStudentProfile] = useState(null);
   const [gradesTab, setGradesTab] = useState("premiere");
+
   const [questions, setQuestions] = useState([]);
   const [newQuestion, setNewQuestion] = useState("");
   const [selectedAppDetails, setSelectedAppDetails] = useState(null);
@@ -216,6 +220,15 @@ const Dashboard = () => {
     try {
       const grades = await getGradesByStudent(studentId);
       setSelectedStudentGrades(grades);
+      
+      try {
+          const profile = await getStudentProfileById(studentId);
+          setSelectedStudentProfile(profile);
+      } catch(e) {
+          console.warn("Pas de profil trouvé ou erreur", e);
+          setSelectedStudentProfile(null);
+      }
+
       setShowGradesModal(true);
       setGradesTab("premiere");
     } catch (err) { alert("Erreur chargement dossier."); }
@@ -295,8 +308,8 @@ const Dashboard = () => {
                         </p>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                        <button onClick={() => handleViewStudentFolder(app.student_id || app.id)} style={{ padding: "8px 15px", background: "#17a2b8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Voir Notes</button>
-                        <button onClick={() => setSelectedAppDetails(app)} style={{ padding: "8px 15px", background: "#6f42c1", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Voir Dossier</button>
+                        <button onClick={() => handleViewStudentFolder(app.student_id || app.id)} style={{ padding: "8px 15px", background: "#17a2b8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Voir Notes & Dossier</button>
+                        <button onClick={() => setSelectedAppDetails(app)} style={{ padding: "8px 15px", background: "#6f42c1", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Voir Motivation</button>
                       </div>
                     </div>
                     {app.status === "pending" && (
@@ -348,15 +361,79 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+
           {showGradesModal && selectedStudentGrades && (
              <div style={{position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1200}}>
-                 <div style={{background:'white', padding:30, borderRadius:10, width:800, maxHeight:'80vh', overflowY:'auto'}}>
-                     <h3>Notes</h3>
-                     <button onClick={()=>setShowGradesModal(false)}>Fermer</button>
-                     <pre>{JSON.stringify(selectedStudentGrades, null, 2)}</pre>
+                 <div style={{background:'white', padding:30, borderRadius:10, width:800, maxHeight:'90vh', overflowY:'auto'}}>
+                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
+                        <h2 style={{margin:0, color:'#007bff'}}>Dossier Scolaire & Diplômes</h2>
+                        <button onClick={()=>setShowGradesModal(false)}>Fermer</button>
+                     </div>
+
+                     {selectedStudentProfile && (
+                         <div style={{ marginBottom: '30px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                             {['brevet', 'bac_francais', 'bac_terminale'].map(type => {
+                                 const filename = selectedStudentProfile[`diploma_${type}`];
+                                 const labels = { brevet: "Brevet", bac_francais: "Bac Français", bac_terminale: "Baccalauréat" };
+                                 
+                                 return (
+                                     <div key={type} style={{ flex: 1, padding: '10px', background: filename ? '#d4edda' : '#f8f9fa', borderRadius: '5px', border: filename ? '1px solid #c3e6cb' : '1px solid #ddd', textAlign: 'center' }}>
+                                         <strong>{labels[type]}</strong><br/>
+                                         {filename ? (
+                                             <a href={`${DIPLOMA_URL_BASE}${filename}`} target="_blank" rel="noreferrer" style={{ color: 'green', textDecoration: 'underline', fontSize: '0.9rem' }}>
+                                                 Voir le document 📄
+                                             </a>
+                                         ) : <span style={{color: '#999', fontSize: '0.8rem'}}>Non fourni</span>}
+                                     </div>
+                                 )
+                             })}
+                         </div>
+                     )}
+
+                     <div style={{display: "flex", marginBottom: "20px", borderBottom: "2px solid #eee"}}>
+                        {['premiere', 'terminale', 'bac'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setGradesTab(tab)}
+                                style={{
+                                flex: 1, padding: "10px",
+                                background: gradesTab === tab ? "#e3f2fd" : "transparent",
+                                border: "none", cursor: "pointer", fontWeight: "bold",
+                                }}
+                            >
+                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </button>
+                        ))}
+                     </div>
+
+                     {getGradesForTab(gradesTab).length === 0 ? (
+                        <p style={{textAlign: "center", color: "#666", fontStyle: "italic"}}>Aucune note disponible pour cette année.</p>
+                     ) : (
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                            <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
+                                <th style={{ padding: "10px", border: "1px solid #ddd" }}>Contexte</th>
+                                <th style={{ padding: "10px", border: "1px solid #ddd" }}>Matière</th>
+                                <th style={{ padding: "10px", border: "1px solid #ddd" }}>Note</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {getGradesForTab(gradesTab).map((grade, idx) => (
+                                <tr key={idx}>
+                                <td style={{ padding: "10px", border: "1px solid #ddd", color: "#666" }}>{formatContext(grade.context)}</td>
+                                <td style={{ padding: "10px", border: "1px solid #ddd", fontWeight: grade.is_specialty ? "bold" : "normal" }}>
+                                    {grade.subject} {grade.is_specialty && <span style={{ fontSize: "0.8em", color: "#28a745" }}>(Spé)</span>}
+                                </td>
+                                <td style={{ padding: "10px", border: "1px solid #ddd", fontWeight: "bold", color: "#007bff" }}>{grade.grade}/20</td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                     )}
                  </div>
              </div>
           )}
+
           {selectedEventId && (
               <div style={{position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1200}}>
                   <div style={{background:'white', padding:30, borderRadius:10}}>
@@ -383,7 +460,7 @@ const Dashboard = () => {
           </div>
 
           <div style={{ marginBottom: "40px" }}>
-            <h2>Écoles recommandées pour vous (selon vos notes)</h2>
+            <h2>✨ Écoles recommandées pour vous (selon vos notes)</h2>
             {recommendedSchools.length === 0 ? (
                 <div style={{background:'white', padding: 20, borderRadius: 10}}>
                     <p>Importez vos bulletins de notes pour voir les écoles qui correspondent à votre profil !</p>
@@ -405,7 +482,7 @@ const Dashboard = () => {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2>Mes Candidatures ({myApplications.filter((a) => a.status !== "withdrawn").length} / 10)</h2>
             {myApplications.some((app) => app.status === "confirmed") ? (
-              <div style={{ padding: "10px 20px", background: "#d4edda", color: "#155724", borderRadius: "5px", fontWeight: "bold" }}>Choix définitif validé !</div>
+              <div style={{ padding: "10px 20px", background: "#d4edda", color: "#155724", borderRadius: "5px", fontWeight: "bold" }}>🎉 Choix définitif validé !</div>
             ) : (
               <button
                 onClick={() => {
