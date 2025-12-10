@@ -11,6 +11,7 @@ import SchoolsMap from './screens/SchoolsMap';
 import StudentCalendar from './screens/StudentCalendar';
 import StudentProfile from './screens/student/StudentProfile';
 import StudentGrades from './screens/student/StudentGrades';
+import CalendarDetails from './screens/CalendarDetails';
 
 import Navbar from './components/Navbar';
 import Chatbot from './components/Chatbot';
@@ -27,6 +28,7 @@ function App() {
         <div className="content-container">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/calendar-details" element={<CalendarDetails />} />
             <Route path="/school/:id" element={<SchoolDetails />} />
             <Route path="/map" element={<SchoolsMap />} />
             <Route path="/calendar" element={<StudentCalendar />} />
