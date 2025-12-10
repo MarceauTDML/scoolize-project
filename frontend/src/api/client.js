@@ -35,6 +35,22 @@ const request = async (endpoint, method = "GET", body = null) => {
   }
 };
 
+export const uploadDiploma = (type, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('token');
+
+    return fetch(`${API_URL}/profile/upload/${type}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+    }).then(async res => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message);
+        return json;
+    });
+};
+
 export const login = (credentials) => {
   return request("/auth/login", "POST", credentials);
 };
@@ -202,3 +218,9 @@ export const confirmApplication = (applicationId) => {
 export const sendChatMessage = (message, history) => {
   return request("/chatbot", "POST", { message, history });
 };
+
+export const getStudentProfileById = (studentId) => {
+    return request(`/profile/${studentId}`, 'GET');
+};
+
+export const DIPLOMA_URL_BASE = `${API_URL}/profile/download/`;

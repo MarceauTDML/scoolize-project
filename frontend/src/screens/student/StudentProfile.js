@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getStudentProfile, createStudentProfile } from '../../api/client';
+import { getStudentProfile, createStudentProfile, uploadDiploma, DIPLOMA_URL_BASE } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 
 const StudentProfile = () => {
@@ -14,20 +14,27 @@ const StudentProfile = () => {
     ine_number: '', jdc_status: '',
     current_status: '', current_school: '', bac_date: '', specialties: '',
     parent_address: '', parent_job: '', siblings_count: 0, is_scholarship: '0',
-    specific_info: ''
+    specific_info: '',
+    diploma_brevet: '',
+    diploma_bac_francais: '',
+    diploma_bac_terminale: ''
   });
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const response = await getStudentProfile();
-        if (response.hasProfile) {
-            const data = response.data;
+        if (response && (response.hasProfile || response.id)) {
+            const data = response.hasProfile ? response.data : response;
+            
             if(data.birth_date) data.birth_date = data.birth_date.split('T')[0];
             if(data.bac_date) data.bac_date = data.bac_date.split('T')[0];
             
-            setFormData(data);
-            setIsLocked(true);
+            setFormData(prev => ({...prev, ...data}));
+            
+            if (data.id) { 
+                setIsLocked(true); 
+            }
         }
       } catch (err) {
         console.error("Erreur chargement profil", err);
@@ -40,6 +47,19 @@ const StudentProfile = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const res = await uploadDiploma(type, file);
+        setFormData(prev => ({ ...prev, [`diploma_${type}`]: res.filename }));
+        alert("Document téléchargé avec succès !");
+    } catch (err) {
+        alert("Erreur upload : " + err.message);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -57,6 +77,34 @@ const StudentProfile = () => {
       alert("Erreur : " + err.message);
     }
   };
+
+  const renderFileSection = (label, type, filename) => (
+    <div style={{ marginBottom: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #eee' }}>
+        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px', color: '#333' }}>{label}</label>
+        {filename ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <span style={{ color: 'green', fontWeight: 'bold' }}>Reçu</span>
+                <a href={`${DIPLOMA_URL_BASE}${filename}`} target="_blank" rel="noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>
+                    Voir le document
+                </a>
+                {!isLocked && (
+                    <label style={{ cursor: 'pointer', fontSize: '0.85rem', color: '#666', border: '1px solid #ccc', padding: '2px 8px', borderRadius: '4px', background:'white' }}>
+                        Remplacer
+                        <input type="file" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, type)} />
+                    </label>
+                )}
+            </div>
+        ) : (
+            <div>
+                {isLocked ? (
+                    <span style={{ color: '#999', fontStyle: 'italic' }}>Aucun document fourni.</span>
+                ) : (
+                    <input type="file" onChange={(e) => handleFileUpload(e, type)} style={{ fontSize: '0.9rem' }} />
+                )}
+            </div>
+        )}
+    </div>
+  );
 
   if (loading) return <div style={{textAlign:'center', padding:'50px'}}>Chargement...</div>;
 
@@ -166,7 +214,17 @@ const StudentProfile = () => {
             </div>
         </div>
 
-        <h3 style={{ color: '#007bff', borderBottom:'1px solid #eee', paddingBottom:'5px' }}>Informations spécifiques</h3>
+        <h3 style={{ color: '#007bff', borderBottom:'1px solid #eee', paddingBottom:'5px' }}>📂 Mes Diplômes & Justificatifs</h3>
+        <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '20px' }}>
+            Veuillez téléverser vos documents officiels (PDF ou Image). Ils seront consultables par les écoles.
+        </p>
+        
+        {renderFileSection("Brevet des Collèges", "brevet", formData.diploma_brevet)}
+        {renderFileSection("Bac de Français (Relevé de notes)", "bac_francais", formData.diploma_bac_francais)}
+        {renderFileSection("Baccalauréat (Relevé de notes officiel)", "bac_terminale", formData.diploma_bac_terminale)}
+
+
+        <h3 style={{ color: '#007bff', borderBottom:'1px solid #eee', paddingBottom:'5px', marginTop: '30px' }}>Informations spécifiques</h3>
         <div style={{ marginBottom: '20px' }}>
             <label>Informations complémentaires (Handicap, sportif de haut niveau...)</label>
             <textarea name="specific_info" value={formData.specific_info} onChange={handleChange} disabled={isLocked} rows="3" style={{...inputStyle, height:'auto'}} />
