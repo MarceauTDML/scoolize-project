@@ -8,14 +8,24 @@ router.post("/", authMiddleware, async (req, res) => {
   const { school_id, motivation_letter, answers } = req.body;
 
   if (req.user.role !== "student") {
-    return res
-      .status(403)
-      .json({ message: "Seuls les élèves peuvent postuler." });
+    return res.status(403).json({ message: "Seuls les élèves peuvent postuler." });
   }
 
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
+
+    const [countResult] = await connection.query(
+      "SELECT COUNT(*) as count FROM applications WHERE student_id = ? AND status != 'withdrawn'",
+      [studentId]
+    );
+
+    if (countResult[0].count >= 10) {
+      await connection.release();
+      return res.status(400).json({
+        message: "Limite atteinte : vous ne pouvez pas faire plus de 10 vœux.",
+      });
+    }
 
     const [exists] = await connection.query(
       "SELECT * FROM applications WHERE student_id = ? AND school_id = ?",
@@ -48,10 +58,45 @@ router.post("/", authMiddleware, async (req, res) => {
     res.status(201).json({ message: "Candidature envoyée avec succès !" });
   } catch (error) {
     await connection.rollback();
-    console.error(error);
+    console.error("Erreur POST /applications :", error);
     res.status(500).json({ message: "Erreur serveur." });
   } finally {
     connection.release();
+  }
+});
+
+router.get("/my-student-applications", authMiddleware, async (req, res) => {
+  if (req.user.role !== "student")
+    return res.status(403).json({ message: "Accès refusé" });
+
+  try {
+    const query = `
+        SELECT 
+            a.id, 
+            a.status, 
+            a.created_at, 
+            a.student_id, 
+            a.school_id, 
+            a.motivation_letter,
+            u.first_name as school_name, 
+            u.last_name as school_city,
+            sd.website as website
+        FROM applications a
+        LEFT JOIN users u ON a.school_id = u.id
+        LEFT JOIN school_details sd ON u.id = sd.user_id
+        WHERE a.student_id = ?
+        ORDER BY a.created_at DESC
+    `;
+
+    const [apps] = await db.query(query, [req.user.id]);
+    
+    console.log(`[DEBUG] Candidatures récupérées pour l'élève ${req.user.id} :`, apps.length); 
+    
+    res.json(apps);
+
+  } catch (error) {
+    console.error("[ERREUR CRITIQUE] GET /my-student-applications :", error);
+    res.status(500).json({ message: "Erreur serveur : " + error.message });
   }
 });
 
@@ -86,6 +131,7 @@ router.get("/my-applications", authMiddleware, async (req, res) => {
 
     res.json(apps);
   } catch (error) {
+    console.error("Erreur GET /my-applications :", error);
     res.status(500).json({ message: "Erreur récupération." });
   }
 });
@@ -108,6 +154,10 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Candidature introuvable." });
     }
 
+    if (app[0].status === 'confirmed' || app[0].status === 'withdrawn') {
+        return res.status(400).json({ message: "Impossible de modifier une candidature finalisée par l'étudiant." });
+    }
+
     await db.query("UPDATE applications SET status = ? WHERE id = ?", [
       status,
       applicationId,
@@ -116,33 +166,59 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
       message: `Candidature ${status === "accepted" ? "acceptée" : "refusée"}.`,
     });
   } catch (error) {
+    console.error("Erreur PUT /status :", error);
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
-router.get("/my-student-applications", authMiddleware, async (req, res) => {
+router.post("/:id/confirm", authMiddleware, async (req, res) => {
+  const applicationId = req.params.id;
   const studentId = req.user.id;
 
-  if (req.user.role !== "student") {
-    return res.status(403).json({ message: "Accès réservé aux étudiants." });
-  }
+  if (req.user.role !== "student")
+    return res.status(403).json({ message: "Interdit" });
 
+  const connection = await db.getConnection();
   try {
-    const query = `
-            SELECT a.id, a.status, a.created_at,
-                   u.first_name AS school_name, u.last_name AS school_city, u.email AS school_email,
-                   d.website
-            FROM applications a
-            JOIN users u ON a.school_id = u.id
-            LEFT JOIN school_details d ON u.id = d.user_id
-            WHERE a.student_id = ?
-            ORDER BY a.created_at DESC
-        `;
-    const [results] = await db.query(query, [studentId]);
-    res.json(results);
+    await connection.beginTransaction();
+
+    const [app] = await connection.query(
+      "SELECT * FROM applications WHERE id = ? AND student_id = ?",
+      [applicationId, studentId]
+    );
+
+    if (app.length === 0) {
+      await connection.release();
+      return res.status(404).json({ message: "Candidature introuvable." });
+    }
+
+    if (app[0].status !== "accepted") {
+      await connection.release();
+      return res.status(400).json({
+        message: "Vous ne pouvez confirmer qu'une école qui vous a accepté.",
+      });
+    }
+
+    await connection.query(
+      "UPDATE applications SET status = 'confirmed' WHERE id = ?",
+      [applicationId]
+    );
+
+    await connection.query(
+      "UPDATE applications SET status = 'withdrawn' WHERE student_id = ? AND id != ? AND status IN ('pending', 'accepted')",
+      [studentId, applicationId]
+    );
+
+    await connection.commit();
+    res.json({
+      message: "Félicitations ! Votre choix définitif est enregistré.",
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erreur serveur" });
+    await connection.rollback();
+    console.error("Erreur POST /confirm :", error);
+    res.status(500).json({ message: "Erreur serveur lors de la confirmation." });
+  } finally {
+    connection.release();
   }
 });
 

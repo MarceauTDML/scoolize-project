@@ -194,3 +194,7 @@ export const getGrades = () => {
 export const getGradesByStudent = (studentId) => {
   return request(`/grades/student/${studentId}`, 'GET');
 };
+
+export const confirmApplication = (applicationId) => {
+  return request(`/applications/${applicationId}/confirm`, "POST");
+};
