@@ -31,8 +31,6 @@ const Home = () => {
 
   const [inputPage, setInputPage] = useState(currentPage);
 
-  const isUserLoggedIn = () => !!localStorage.getItem("token");
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -46,20 +44,16 @@ const Home = () => {
           type: currentType,
         });
 
-        let schoolsData = [];
-        if (Array.isArray(response)) {
-            schoolsData = response;
-            setTotalPages(1);
-            setTotalSchools(response.length);
-        } else if (response && response.data) {
-            schoolsData = response.data;
+        if (response && response.data) {
+            setSchools(response.data);
             if (response.pagination) {
                 setTotalPages(response.pagination.totalPages || 1);
                 setTotalSchools(response.pagination.totalSchools || response.data.length);
             }
+        } else {
+            setSchools([]);
         }
         
-        setSchools(schoolsData || []);
         setInputPage(currentPage);
 
         if (
@@ -88,7 +82,7 @@ const Home = () => {
             const favIds = await getFavoriteIds();
             setFavorites(new Set(favIds));
           } catch (err) {
-            console.error("Erreur favoris", err);
+            console.error(err);
           }
         }
 
@@ -154,8 +148,46 @@ const Home = () => {
     }
   };
 
+  const Timeline = () => {
+    const now = new Date();
+    const steps = [
+        { id: 1, title: "Découverte", dates: "Oct - Jan", details: "Je m'informe", start: new Date("2025-10-01"), end: new Date("2026-01-18") },
+        { id: 2, title: "Vœux", dates: "Jan - Avril", details: "Je postule", start: new Date("2026-01-19"), end: new Date("2026-04-01") },
+        { id: 3, title: "Admission", dates: "Avril - Juillet", details: "Je décide", start: new Date("2026-06-02"), end: new Date("2026-12-10") }
+    ];
+
+    return (
+        <div style={{ background: "white", padding: "20px", borderRadius: "10px", boxShadow: "0 2px 5px rgba(0,0,0,0.05)", marginBottom: "30px" }}>
+            <h3 style={{ marginTop: 0, marginBottom: "20px", color: "#2c3e50", textAlign:'center' }}>Calendrier 2026</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", position: "relative", alignItems: "flex-start" }}>
+                <div style={{ position: "absolute", top: "20px", left: "15%", right: "15%", height: "4px", background: "#e9ecef", zIndex: 0 }}></div>
+                {steps.map((step, index) => {
+                    let status = "upcoming";
+                    if (now >= step.start && now <= step.end) status = "current";
+                    else if (now > step.end) status = "completed";
+
+                    const color = status === "completed" ? "#28a745" : status === "current" ? "#007bff" : "#ccc";
+                    const bgColor = status === "completed" ? "#d4edda" : status === "current" ? "#e3f2fd" : "#f8f9fa";
+                    
+                    return (
+                        <div key={step.id} style={{ width: "30%", textAlign: "center", position: "relative", zIndex: 1 }}>
+                            <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: bgColor, border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px auto", fontWeight: "bold", color: color }}>
+                                {status === "completed" ? "✓" : index + 1}
+                            </div>
+                            <div style={{ fontWeight: "bold", color: "#333", fontSize: '0.9rem' }}>{step.title}</div>
+                            <div style={{ fontSize: "0.8rem", color: "#666" }}>{step.dates}</div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+  };
+
   return (
     <div>
+      <Timeline />
+
       <div style={{ marginBottom: "30px" }}>
         <h1 style={{ margin: "0 0 10px 0", fontSize: "2rem", color: "#2c3e50" }}>
           Trouvez votre établissement
@@ -264,7 +296,9 @@ const Home = () => {
       {schools.length === 0 ? (
         <div style={{ textAlign: "center", padding: "50px", color: "#666" }}>
           <h3>Aucun résultat trouvé</h3>
-          <p>Essayez de modifier vos filtres.</p>
+          <p>
+            Essayez de modifier vos filtres.
+          </p>
         </div>
       ) : (
         <div className="schools-grid">
@@ -306,7 +340,7 @@ const Home = () => {
                       boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                     }}
                   >
-                    Recommandé
+                    ✨ Recommandé
                   </div>
                 )}
 
