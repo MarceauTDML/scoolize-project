@@ -57,7 +57,7 @@ export const getAllSchoolLocations = () => {
 };
 
 export const getRecommendedSchools = () => {
-  return request('/schools/recommended', 'GET');
+  return request('/schools/suggestions/recommended', 'GET');
 };
 
 export const applyToSchool = (schoolId, motivationLetter, answers) => {
@@ -197,4 +197,8 @@ export const getGradesByStudent = (studentId) => {
 
 export const confirmApplication = (applicationId) => {
   return request(`/applications/${applicationId}/confirm`, "POST");
+};
+
+export const sendChatMessage = (message, history) => {
+  return request("/chatbot", "POST", { message, history });
 };

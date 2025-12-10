@@ -16,7 +16,7 @@ const Home = () => {
   const [totalSchools, setTotalSchools] = useState(0);
   const [favorites, setFavorites] = useState(new Set());
 
-  const [isRecommendationMode, setIsRecommendationMode] = useState(false);
+  const [recommendedIds, setRecommendedIds] = useState(new Set());
 
   const currentPage = parseInt(searchParams.get("page") || "1");
   const currentSearch = searchParams.get("search") || "";
@@ -31,13 +31,36 @@ const Home = () => {
 
   const [inputPage, setInputPage] = useState(currentPage);
 
+  const isUserLoggedIn = () => !!localStorage.getItem("token");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
         const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-        let response;
+        const response = await getSchools({
+          page: currentPage,
+          search: currentSearch,
+          city: currentCity,
+          type: currentType,
+        });
+
+        let schoolsData = [];
+        if (Array.isArray(response)) {
+            schoolsData = response;
+            setTotalPages(1);
+            setTotalSchools(response.length);
+        } else if (response && response.data) {
+            schoolsData = response.data;
+            if (response.pagination) {
+                setTotalPages(response.pagination.totalPages || 1);
+                setTotalSchools(response.pagination.totalSchools || response.data.length);
+            }
+        }
+        
+        setSchools(schoolsData || []);
+        setInputPage(currentPage);
 
         if (
           token &&
@@ -48,43 +71,31 @@ const Home = () => {
           currentPage === 1
         ) {
           try {
-            response = await getRecommendedSchools();
-            setIsRecommendationMode(true);
+            const recos = await getRecommendedSchools();
+            if (Array.isArray(recos)) {
+                const ids = new Set(recos.map(s => s.id));
+                setRecommendedIds(ids);
+            }
           } catch (e) {
-            response = await getSchools({ page: 1 });
-            setIsRecommendationMode(false);
+            console.warn("Impossible de charger les recommandations", e);
           }
         } else {
-          response = await getSchools({
-            page: currentPage,
-            search: currentSearch,
-            city: currentCity,
-            type: currentType,
-          });
-          setIsRecommendationMode(false);
+            setRecommendedIds(new Set());
         }
-
-        setSchools(response.data);
-        if (response.pagination) {
-          setTotalPages(response.pagination.totalPages || 1);
-          setTotalSchools(
-            response.pagination.totalSchools || response.data.length
-          );
-        }
-        setInputPage(currentPage);
 
         if (token) {
           try {
             const favIds = await getFavoriteIds();
             setFavorites(new Set(favIds));
           } catch (err) {
-            console.error(err);
+            console.error("Erreur favoris", err);
           }
         }
 
         window.scrollTo(0, 0);
       } catch (error) {
-        console.error(error.message);
+        console.error("Erreur chargement Home:", error);
+        setSchools([]);
       }
     };
 
@@ -146,17 +157,12 @@ const Home = () => {
   return (
     <div>
       <div style={{ marginBottom: "30px" }}>
-        <h1
-          style={{ margin: "0 0 10px 0", fontSize: "2rem", color: "#2c3e50" }}
-        >
-          {isRecommendationMode
-            ? "Établissements recommandés pour vous"
-            : "Trouvez votre établissement"}
+        <h1 style={{ margin: "0 0 10px 0", fontSize: "2rem", color: "#2c3e50" }}>
+          Trouvez votre établissement
         </h1>
         <p style={{ color: "#666", fontSize: "1.1rem", margin: 0 }}>
-          {isRecommendationMode
-            ? "Sélection personnalisée basée sur vos notes et spécialités"
-            : `${totalSchools} établissements disponibles`}
+          {totalSchools} établissements disponibles
+          {recommendedIds.size > 0 && " (dont certains recommandés pour vous 🔥)"}
         </p>
       </div>
 
@@ -258,10 +264,7 @@ const Home = () => {
       {schools.length === 0 ? (
         <div style={{ textAlign: "center", padding: "50px", color: "#666" }}>
           <h3>Aucun résultat trouvé</h3>
-          <p>
-            Essayez de modifier vos filtres ou de remplir votre dossier
-            scolaire.
-          </p>
+          <p>Essayez de modifier vos filtres.</p>
         </div>
       ) : (
         <div className="schools-grid">
@@ -273,7 +276,7 @@ const Home = () => {
             const isFav = favorites.has(school.id);
             const rating = parseFloat(school.average_rating) || 0;
 
-            const isMatch = isRecommendationMode && school.match_score > 0;
+            const isMatch = recommendedIds.has(school.id);
 
             return (
               <div
@@ -303,7 +306,7 @@ const Home = () => {
                       boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                     }}
                   >
-                    ✨ Recommandé
+                    Recommandé
                   </div>
                 )}
 
@@ -349,9 +352,7 @@ const Home = () => {
                     justifyContent: "space-between",
                   }}
                 >
-                  <div
-                    style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
-                  >
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     {school.school_type && (
                       <span
                         style={{
@@ -366,7 +367,7 @@ const Home = () => {
                         {school.school_type}
                       </span>
                     )}
-                    {school.region && (
+                    {school.city && (
                       <span
                         style={{
                           backgroundColor: "#e9ecef",
@@ -376,7 +377,7 @@ const Home = () => {
                           fontSize: "0.75rem",
                         }}
                       >
-                        {school.region}
+                        {school.city}
                       </span>
                     )}
                   </div>
@@ -399,19 +400,6 @@ const Home = () => {
                       {rating.toFixed(1)}
                     </div>
                   )}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    color: "#666",
-                    marginBottom: "5px",
-                    fontSize: "0.95rem",
-                  }}
-                >
-                  <span style={{ marginRight: "8px" }}>📍</span>
-                  <span>{school.last_name}</span>
                 </div>
 
                 <button
@@ -439,7 +427,7 @@ const Home = () => {
         </div>
       )}
 
-      {!isRecommendationMode && schools.length > 0 && (
+      {schools.length > 0 && (
         <div
           style={{
             display: "flex",

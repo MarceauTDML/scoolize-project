@@ -12,6 +12,7 @@ const newsRoute = require('./routes/news');
 const reviewsRoute = require('./routes/reviews');
 const profileRoute = require('./routes/profile');
 const gradesRoute = require('./routes/grades');
+const chatbotRoute = require('./routes/chatbot');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/news', newsRoute);
 app.use('/api/reviews', reviewsRoute);
 app.use('/api/profile', profileRoute);
 app.use('/api/grades', gradesRoute);
+app.use('/api/chatbot', chatbotRoute);
 
 app.get("/", (req, res) => {
   res.send("API Scoolize en ligne");
