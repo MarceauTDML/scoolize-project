@@ -280,5 +280,42 @@ router.get("/recommended", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur algorithme" });
   }
 });
+
+router.get("/:id/questions", async (req, res) => {
+  try {
+    const [questions] = await db.query(
+      "SELECT * FROM school_questions WHERE school_id = ?",
+      [req.params.id]
+    );
+    res.json(questions);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur récupération questions" });
+  }
+});
+
+router.post("/questions", authMiddleware, async (req, res) => {
+  if (req.user.role !== "school") return res.status(403).json({ message: "Interdit" });
+  
+  const { question_text } = req.body;
+  try {
+    await db.query(
+      "INSERT INTO school_questions (school_id, question_text) VALUES (?, ?)",
+      [req.user.id, question_text]
+    );
+    res.status(201).json({ message: "Question ajoutée" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur ajout question" });
+  }
+});
+
+router.delete("/questions/:id", authMiddleware, async (req, res) => {
+    if (req.user.role !== "school") return res.status(403).json({ message: "Interdit" });
+    try {
+        await db.query("DELETE FROM school_questions WHERE id = ? AND school_id = ?", [req.params.id, req.user.id]);
+        res.json({ message: "Question supprimée" });
+    } catch (error) {
+        res.status(500).json({ message: "Erreur suppression" });
+    }
+});
  
 module.exports = router;
