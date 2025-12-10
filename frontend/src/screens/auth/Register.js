@@ -21,6 +21,16 @@ const Register = () => {
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
+  const passwordCriteria = {
+    length: formData.password.length >= 11,
+    uppercase: /[A-Z]/.test(formData.password),
+    lowercase: /[a-z]/.test(formData.password),
+    number: /\d/.test(formData.password),
+    special: /[\W_]/.test(formData.password)
+  };
+
+  const isPasswordValid = Object.values(passwordCriteria).every(Boolean);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -29,6 +39,12 @@ const Register = () => {
     e.preventDefault();
     setMessage('');
     setIsError(false);
+
+    if (!isPasswordValid) {
+        setIsError(true);
+        setMessage("Le mot de passe ne respecte pas les critères de sécurité.");
+        return;
+    }
 
     try {
       await register({ ...formData, role });
@@ -131,12 +147,44 @@ const Register = () => {
             <label>Email</label>
             <input type="email" name="email" required onChange={handleChange} />
           </div>
-          <div>
+          
+          <div style={{ marginTop: '15px' }}>
             <label>Mot de passe</label>
-            <input type="password" name="password" required onChange={handleChange} />
+            <input 
+                type="password" 
+                name="password" 
+                required 
+                onChange={handleChange} 
+                style={{ 
+                    border: formData.password && !isPasswordValid ? '2px solid red' : isPasswordValid && formData.password ? '2px solid green' : '1px solid #ccc' 
+                }}
+            />
+            {formData.password && !isPasswordValid && (
+                <div style={{ fontSize: '0.8rem', marginTop: '5px', background: '#fff3cd', padding: '10px', borderRadius: '5px' }}>
+                    <p style={{margin: '2px 0', color: passwordCriteria.length ? 'green' : 'red'}}>
+                        {passwordCriteria.length ? '✅' : '❌'} Au moins 11 caractères
+                    </p>
+                    <p style={{margin: '2px 0', color: passwordCriteria.uppercase ? 'green' : 'red'}}>
+                        {passwordCriteria.uppercase ? '✅' : '❌'} Une majuscule
+                    </p>
+                    <p style={{margin: '2px 0', color: passwordCriteria.lowercase ? 'green' : 'red'}}>
+                        {passwordCriteria.lowercase ? '✅' : '❌'} Une minuscule
+                    </p>
+                    <p style={{margin: '2px 0', color: passwordCriteria.number ? 'green' : 'red'}}>
+                        {passwordCriteria.number ? '✅' : '❌'} Un chiffre
+                    </p>
+                    <p style={{margin: '2px 0', color: passwordCriteria.special ? 'green' : 'red'}}>
+                        {passwordCriteria.special ? '✅' : '❌'} Un caractère spécial (!@#$%^&*)
+                    </p>
+                </div>
+            )}
           </div>
 
-          <button type="submit" style={{ marginTop: '20px' }}>
+          <button 
+            type="submit" 
+            style={{ marginTop: '20px', opacity: isPasswordValid ? 1 : 0.6, cursor: isPasswordValid ? 'pointer' : 'not-allowed' }}
+            disabled={!isPasswordValid}
+          >
             {role === 'school' ? "S'inscrire (Validation requise)" : "S'inscrire"}
           </button>
         </form>

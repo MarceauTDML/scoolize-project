@@ -3,6 +3,11 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const db = require("../config/db");
 
+const isPasswordValid = (password) => {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{11,}$/;
+  return regex.test(password);
+};
+
 router.post("/", async (req, res) => {
   const {
     role,
@@ -20,6 +25,13 @@ router.post("/", async (req, res) => {
     return res
       .status(400)
       .json({ message: "Les champs principaux sont obligatoires." });
+  }
+
+  if (!isPasswordValid(password)) {
+    return res.status(400).json({
+      message:
+        "Le mot de passe doit contenir au moins 11 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.",
+    });
   }
 
   try {
