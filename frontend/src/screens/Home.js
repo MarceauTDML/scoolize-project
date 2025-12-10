@@ -44,16 +44,20 @@ const Home = () => {
           type: currentType,
         });
 
-        if (response && response.data) {
-            setSchools(response.data);
+        let schoolsData = [];
+        if (Array.isArray(response)) {
+            schoolsData = response;
+            setTotalPages(1);
+            setTotalSchools(response.length);
+        } else if (response && response.data) {
+            schoolsData = response.data;
             if (response.pagination) {
                 setTotalPages(response.pagination.totalPages || 1);
                 setTotalSchools(response.pagination.totalSchools || response.data.length);
             }
-        } else {
-            setSchools([]);
         }
         
+        setSchools(schoolsData || []);
         setInputPage(currentPage);
 
         if (
@@ -82,7 +86,7 @@ const Home = () => {
             const favIds = await getFavoriteIds();
             setFavorites(new Set(favIds));
           } catch (err) {
-            console.error(err);
+            console.error("Erreur favoris", err);
           }
         }
 
@@ -153,13 +157,25 @@ const Home = () => {
     const steps = [
         { id: 1, title: "Découverte", dates: "Oct - Jan", details: "Je m'informe", start: new Date("2025-10-01"), end: new Date("2026-01-18") },
         { id: 2, title: "Vœux", dates: "Jan - Avril", details: "Je postule", start: new Date("2026-01-19"), end: new Date("2026-04-01") },
-        { id: 3, title: "Admission", dates: "Avril - Juillet", details: "Je décide", start: new Date("2026-06-02"), end: new Date("2026-12-10") }
+        { id: 3, title: "Admission", dates: "Juin - Déc", details: "Je décide", start: new Date("2026-06-02"), end: new Date("2026-12-10") }
     ];
 
     return (
-        <div style={{ background: "white", padding: "20px", borderRadius: "10px", boxShadow: "0 2px 5px rgba(0,0,0,0.05)", marginBottom: "30px" }}>
+        <div style={{ background: "white", padding: "20px", borderRadius: "10px", boxShadow: "0 2px 5px rgba(0,0,0,0.05)", marginBottom: "30px", position: 'relative' }}>
             <h3 style={{ marginTop: 0, marginBottom: "20px", color: "#2c3e50", textAlign:'center' }}>Calendrier 2026</h3>
-            <div style={{ display: "flex", justifyContent: "space-between", position: "relative", alignItems: "flex-start" }}>
+            
+            <button 
+                onClick={() => navigate('/calendar-details')}
+                style={{
+                    position: 'absolute', top: '20px', right: '20px',
+                    background: 'transparent', border: '1px solid #007bff', color: '#007bff',
+                    padding: '5px 10px', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem'
+                }}
+            >
+                En savoir plus →
+            </button>
+
+            <div style={{ display: "flex", justifyContent: "space-between", position: "relative", alignItems: "flex-start", marginTop: "30px" }}>
                 <div style={{ position: "absolute", top: "20px", left: "15%", right: "15%", height: "4px", background: "#e9ecef", zIndex: 0 }}></div>
                 {steps.map((step, index) => {
                     let status = "upcoming";
@@ -340,7 +356,7 @@ const Home = () => {
                       boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                     }}
                   >
-                    ✨ Recommandé
+                    Recommandé
                   </div>
                 )}
 
