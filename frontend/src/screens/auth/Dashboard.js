@@ -17,6 +17,7 @@ import {
   addSchoolQuestion,
   deleteSchoolQuestion,
   confirmApplication,
+  getRecommendedSchools,
 } from "../../api/client";
 
 const Dashboard = () => {
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [myApplications, setMyApplications] = useState([]);
   const [myFavorites, setMyFavorites] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
+  const [recommendedSchools, setRecommendedSchools] = useState([]);
 
   const [newsList, setNewsList] = useState([]);
   const [newsForm, setNewsForm] = useState({
@@ -59,9 +61,6 @@ const Dashboard = () => {
       const userData = JSON.parse(storedUser);
       setUser(userData);
       
-      console.log("--- DASHBOARD INIT ---");
-      console.log("User connecté :", userData);
-      
       const role = userData.role ? userData.role.toLowerCase() : "";
 
       if (role === "school") {
@@ -69,17 +68,22 @@ const Dashboard = () => {
         fetchMyNews(userData.id);
         fetchMyQuestions(userData.id);
       } else if (role === "student") {
-        console.log("Rôle détecté : Étudiant -> Chargement des données...");
         fetchStudentApplications();
         fetchFavorites();
         fetchMyEvents();
-      } else {
-        console.warn("Rôle inconnu :", role);
+        fetchRecommendations();
       }
     } catch (e) {
       console.error("Erreur parsing user", e);
     }
   }, [navigate]);
+
+  const fetchRecommendations = async () => {
+      try {
+          const data = await getRecommendedSchools();
+          if(Array.isArray(data)) setRecommendedSchools(data);
+      } catch (e) { console.error("Erreur recommendations", e); }
+  };
 
   const fetchSchoolApplications = async () => {
     try {
@@ -93,20 +97,15 @@ const Dashboard = () => {
   const fetchStudentApplications = async () => {
     try {
       const data = await getStudentApplications();
-      
-      console.log("Réponse API (Mes Candidatures) :", data);
-
       if (Array.isArray(data)) {
         setMyApplications(data);
       } else if (data && data.data && Array.isArray(data.data)) {
         setMyApplications(data.data);
       } else {
-        console.error("Format de candidatures invalide reçue :", data);
         setMyApplications([]); 
       }
     } catch (err) {
       console.error("Erreur fetchStudentApplications :", err);
-      alert("Erreur lors du chargement de vos candidatures.");
     }
   };
 
@@ -176,7 +175,7 @@ const Dashboard = () => {
     e.preventDefault();
     try {
       await createNews(newsForm);
-      setNewsForm({ ...newsForm, title: "", content: "" });
+      setNewsForm({ ...newsForm, title: "", content: "" }); 
       fetchMyNews(user.id);
       alert("Publié !");
     } catch (err) { alert(err.message); }
@@ -383,10 +382,30 @@ const Dashboard = () => {
             </div>
           </div>
 
+          <div style={{ marginBottom: "40px" }}>
+            <h2>Écoles recommandées pour vous (selon vos notes)</h2>
+            {recommendedSchools.length === 0 ? (
+                <div style={{background:'white', padding: 20, borderRadius: 10}}>
+                    <p>Importez vos bulletins de notes pour voir les écoles qui correspondent à votre profil !</p>
+                </div>
+            ) : (
+                <div className="schools-grid">
+                    {recommendedSchools.map(school => (
+                        <div key={school.id} className="school-card" style={{border: '2px solid #ffc107'}}>
+                            <h3 style={{marginTop:0}}>{school.first_name} {school.match_score > 0 && "🔥"}</h3>
+                            <p style={{color:'#666'}}>{school.school_type}</p>
+                            <p style={{color:'#666'}}>{school.city}</p>
+                            <button onClick={() => navigate(`/school/${school.id}`)} style={{width: "100%", padding: "10px", background: "#007bff", color: "white", border: "none", borderRadius: "5px", cursor: "pointer"}}>Voir</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+          </div>
+
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2>Mes Candidatures ({myApplications.filter((a) => a.status !== "withdrawn").length} / 10)</h2>
             {myApplications.some((app) => app.status === "confirmed") ? (
-              <div style={{ padding: "10px 20px", background: "#d4edda", color: "#155724", borderRadius: "5px", fontWeight: "bold" }}>🎉 Choix définitif validé !</div>
+              <div style={{ padding: "10px 20px", background: "#d4edda", color: "#155724", borderRadius: "5px", fontWeight: "bold" }}>Choix définitif validé !</div>
             ) : (
               <button
                 onClick={() => {
@@ -413,7 +432,6 @@ const Dashboard = () => {
           {myApplications.length === 0 ? (
             <div style={{ marginTop: "20px", padding: 20, background: '#f8f9fa', borderRadius: 8 }}>
                 <p style={{color: "#666"}}>Vous n'avez pas encore postulé à une école.</p>
-                <p style={{fontSize: '0.9em'}}>Vérifiez dans la console (F12) si des erreurs apparaissent.</p>
             </div>
           ) : (
             <div style={{ display: "grid", gap: "20px", marginTop: "20px" }}>

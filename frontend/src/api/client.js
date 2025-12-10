@@ -57,7 +57,7 @@ export const getAllSchoolLocations = () => {
 };
 
 export const getRecommendedSchools = () => {
-  return request('/schools/recommended', 'GET');
+  return request('/schools/suggestions/recommended', 'GET');
 };
 
 export const applyToSchool = (schoolId, motivationLetter, answers) => {
