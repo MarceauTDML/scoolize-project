@@ -13,6 +13,9 @@ import {
   updateEventRegistration,
   getMyEventRegistrations,
   getGradesByStudent,
+  getSchoolQuestions,
+  addSchoolQuestion,
+  deleteSchoolQuestion,
 } from "../../api/client";
 
 const Dashboard = () => {
@@ -39,6 +42,10 @@ const Dashboard = () => {
   const [selectedStudentGrades, setSelectedStudentGrades] = useState([]);
   const [gradesTab, setGradesTab] = useState("premiere");
 
+  const [questions, setQuestions] = useState([]);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [selectedAppDetails, setSelectedAppDetails] = useState(null);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -54,6 +61,7 @@ const Dashboard = () => {
     if (userData.role === "school") {
       fetchSchoolApplications();
       fetchMyNews(userData.id);
+      fetchMyQuestions(userData.id);
     } else if (userData.role === "student") {
       fetchStudentApplications();
       fetchFavorites();
@@ -103,6 +111,41 @@ const Dashboard = () => {
       setNewsList(data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchMyQuestions = async (schoolId) => {
+    try {
+      const data = await getSchoolQuestions(schoolId);
+      setQuestions(data);
+    } catch (e) {
+      console.error("Erreur questions", e);
+    }
+  };
+
+  const handleAddQuestion = async (e) => {
+    e.preventDefault();
+    try {
+      await addSchoolQuestion(newQuestion);
+      setNewQuestion("");
+      fetchMyQuestions(user.id);
+    } catch (e) {
+      alert("Erreur ajout question");
+    }
+  };
+
+  const handleDeleteQuestion = async (id) => {
+    if (
+      window.confirm(
+        "Supprimer cette question ? Cela supprimera aussi les réponses associées."
+      )
+    ) {
+      try {
+        await deleteSchoolQuestion(id);
+        fetchMyQuestions(user.id);
+      } catch (e) {
+        alert("Erreur suppression");
+      }
     }
   };
 
@@ -258,6 +301,86 @@ const Dashboard = () => {
 
       {user.role === "school" && (
         <div>
+          <div
+            style={{
+              background: "white",
+              padding: "20px",
+              borderRadius: "10px",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+              marginBottom: "40px",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>
+              Configuration du Questionnaire de Candidature
+            </h3>
+            <p style={{ color: "#666", fontSize: "0.9em" }}>
+              Définissez ici les questions auxquelles les étudiants devront
+              répondre pour postuler dans votre école.
+            </p>
+
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              {questions.map((q) => (
+                <li
+                  key={q.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px",
+                    borderBottom: "1px solid #eee",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>{q.question_text}</span>
+                  <button
+                    onClick={() => handleDeleteQuestion(q.id)}
+                    style={{
+                      color: "red",
+                      border: "1px solid red",
+                      background: "white",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      padding: "2px 8px",
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <form
+              onSubmit={handleAddQuestion}
+              style={{ display: "flex", marginTop: "15px", gap: "10px" }}
+            >
+              <input
+                type="text"
+                required
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                placeholder="Ex: Pourquoi avez-vous choisi notre spécialité ?"
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "5px",
+                  border: "1px solid #ddd",
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  background: "#28a745",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Ajouter une question
+              </button>
+            </form>
+          </div>
+
           <div style={{ marginBottom: "40px" }}>
             <h2>Candidatures reçues ({schoolApplications.length})</h2>
             {schoolApplications.length === 0 ? (
@@ -305,22 +428,47 @@ const Dashboard = () => {
                         </p>
                       </div>
 
-                      <button
-                        onClick={() =>
-                          handleViewStudentFolder(app.student_id || app.id)
-                        }
+                      <div
                         style={{
-                          padding: "8px 15px",
-                          background: "#17a2b8",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "5px",
-                          cursor: "pointer",
-                          fontWeight: "bold",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "5px",
                         }}
                       >
-                        Voir le dossier
-                      </button>
+                        {/* BOUTON VOIR DOSSIER SCOLAIRE (EXISTANT) */}
+                        <button
+                          onClick={() =>
+                            handleViewStudentFolder(app.student_id || app.id)
+                          }
+                          style={{
+                            padding: "8px 15px",
+                            background: "#17a2b8",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "5px",
+                            cursor: "pointer",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          Voir Notes (Bulletins)
+                        </button>
+
+                        {/* BOUTON VOIR CANDIDATURE (NOUVEAU) */}
+                        <button
+                          onClick={() => setSelectedAppDetails(app)}
+                          style={{
+                            padding: "8px 15px",
+                            background: "#6f42c1",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "5px",
+                            cursor: "pointer",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          Voir Motivation & Réponses
+                        </button>
+                      </div>
                     </div>
 
                     {app.status === "pending" && (
@@ -851,6 +999,101 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+
+          {selectedAppDetails && (
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background: "rgba(0,0,0,0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1100,
+              }}
+            >
+              <div
+                style={{
+                  background: "white",
+                  padding: "25px",
+                  borderRadius: "10px",
+                  maxWidth: "700px",
+                  width: "90%",
+                  maxHeight: "90vh",
+                  overflowY: "auto",
+                }}
+              >
+                <h2 style={{ marginTop: 0, color: "#007bff" }}>
+                  Détail de la candidature
+                </h2>
+                <h3>
+                  {selectedAppDetails.first_name} {selectedAppDetails.last_name}
+                </h3>
+
+                <div
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <h4 style={{ marginTop: 0 }}>Lettre de motivation</h4>
+                  <p style={{ whiteSpace: "pre-wrap", color: "#333" }}>
+                    {selectedAppDetails.motivation_letter ||
+                      "Aucune lettre fournie."}
+                  </p>
+                </div>
+
+                <h4>Réponses au questionnaire</h4>
+                {selectedAppDetails.questionnaire_answers &&
+                selectedAppDetails.questionnaire_answers.length > 0 ? (
+                  <ul style={{ paddingLeft: "20px" }}>
+                    {selectedAppDetails.questionnaire_answers.map((qa, idx) => (
+                      <li key={idx} style={{ marginBottom: "15px" }}>
+                        <div
+                          style={{ fontWeight: "bold", marginBottom: "5px" }}
+                        >
+                          {qa.question_text}
+                        </div>
+                        <div
+                          style={{
+                            background: "#e9ecef",
+                            padding: "10px",
+                            borderRadius: "5px",
+                          }}
+                        >
+                          {qa.answer_text}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ fontStyle: "italic", color: "#666" }}>
+                    Aucune réponse au questionnaire.
+                  </p>
+                )}
+
+                <button
+                  onClick={() => setSelectedAppDetails(null)}
+                  style={{
+                    marginTop: "20px",
+                    padding: "10px 20px",
+                    background: "#6c757d",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1120,7 +1363,6 @@ const Dashboard = () => {
                       marginBottom: "10px",
                     }}
                   >
-                    <span style={{ marginRight: "8px" }}>📍</span>
                     <span>{fav.last_name}</span>
                   </div>
                   <button

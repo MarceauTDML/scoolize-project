@@ -5,7 +5,7 @@ const authMiddleware = require("../middleware/security");
 
 router.post("/", authMiddleware, async (req, res) => {
   const studentId = req.user.id;
-  const { school_id } = req.body;
+  const { school_id, motivation_letter, answers } = req.body;
 
   if (req.user.role !== "student") {
     return res
@@ -13,46 +13,80 @@ router.post("/", authMiddleware, async (req, res) => {
       .json({ message: "Seuls les élèves peuvent postuler." });
   }
 
+  const connection = await db.getConnection();
   try {
-    const [exists] = await db.query(
+    await connection.beginTransaction();
+
+    const [exists] = await connection.query(
       "SELECT * FROM applications WHERE student_id = ? AND school_id = ?",
       [studentId, school_id]
     );
     if (exists.length > 0) {
+      await connection.release();
       return res.status(409).json({ message: "Vous avez déjà postulé ici." });
     }
 
-    await db.query(
-      "INSERT INTO applications (student_id, school_id) VALUES (?, ?)",
-      [studentId, school_id]
+    const [result] = await connection.query(
+      "INSERT INTO applications (student_id, school_id, motivation_letter) VALUES (?, ?, ?)",
+      [studentId, school_id, motivation_letter]
     );
-    res.status(201).json({ message: "Candidature envoyée !" });
+    const applicationId = result.insertId;
+
+    if (answers && answers.length > 0) {
+      const values = answers.map((a) => [
+        applicationId,
+        a.question_id,
+        a.answer_text,
+      ]);
+      await connection.query(
+        "INSERT INTO application_answers (application_id, question_id, answer_text) VALUES ?",
+        [values]
+      );
+    }
+
+    await connection.commit();
+    res.status(201).json({ message: "Candidature envoyée avec succès !" });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
+    await connection.rollback();
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur." });
+  } finally {
+    connection.release();
   }
 });
 
 router.get("/my-applications", authMiddleware, async (req, res) => {
-  const schoolId = req.user.id;
-
-  if (req.user.role !== "school") {
-    return res.status(403).json({ message: "Accès réservé aux écoles." });
-  }
+  if (req.user.role !== "school")
+    return res.status(403).json({ message: "Accès refusé" });
 
   try {
-    const query = `
-            SELECT a.id, a.status, a.created_at, a.student_id, 
-                   u.first_name, u.last_name, u.email
-            FROM applications a
-            JOIN users u ON a.student_id = u.id
-            WHERE a.school_id = ?
-            ORDER BY a.created_at DESC
-        `;
-    const [results] = await db.query(query, [schoolId]);
-    res.json(results);
+    const [apps] = await db.query(
+      `
+      SELECT a.*, u.first_name, u.last_name, u.email 
+      FROM applications a
+      JOIN users u ON a.student_id = u.id
+      WHERE a.school_id = ?
+      ORDER BY a.created_at DESC
+    `,
+      [req.user.id]
+    );
+
+    for (let app of apps) {
+      const [answers] = await db.query(
+        `
+            SELECT q.question_text, ans.answer_text 
+            FROM application_answers ans
+            JOIN school_questions q ON ans.question_id = q.id
+            WHERE ans.application_id = ?
+        `,
+        [app.id]
+      );
+      app.questionnaire_answers = answers;
+    }
+
+    res.json(apps);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erreur serveur" });
+    res.status(500).json({ message: "Erreur récupération." });
   }
 });
 

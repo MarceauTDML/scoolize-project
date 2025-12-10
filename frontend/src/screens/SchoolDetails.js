@@ -11,6 +11,7 @@ import {
   getSchoolReviews,
   checkCanReview,
   createReview,
+  getSchoolQuestions,
 } from "../api/client";
 
 const SchoolDetails = () => {
@@ -28,11 +29,25 @@ const SchoolDetails = () => {
   const [canReview, setCanReview] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
 
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [schoolQuestions, setSchoolQuestions] = useState([]);
+  const [applicationForm, setApplicationForm] = useState({
+    motivation: "",
+    answers: {},
+  });
+
   useEffect(() => {
     const fetchDetails = async () => {
       try {
         const data = await getSchoolById(id);
         setSchool(data);
+
+        try {
+          const questionsData = await getSchoolQuestions(id);
+          setSchoolQuestions(questionsData);
+        } catch (e) {
+          console.error("Erreur chargement questions", e);
+        }
 
         try {
           const newsData = await getSchoolNews(id);
@@ -77,7 +92,7 @@ const SchoolDetails = () => {
     fetchDetails();
   }, [id]);
 
-  const handleApply = async () => {
+  const handleOpenApply = () => {
     const token = localStorage.getItem("token");
     if (!token) {
       if (
@@ -87,20 +102,43 @@ const SchoolDetails = () => {
       }
       return;
     }
+    setShowApplyModal(true);
+  };
+
+  const submitApplication = async (e) => {
+    e.preventDefault();
 
     if (
-      window.confirm(
-        `Voulez-vous vraiment envoyer votre dossier à ${school.first_name} ?`
-      )
+      !window.confirm(`Confirmer l'envoi du dossier à ${school.first_name} ?`)
     ) {
-      try {
-        await applyToSchool(school.id);
-        alert(
-          "Candidature envoyée avec succès ! Retrouvez-la dans votre Dashboard."
-        );
-      } catch (err) {
-        alert(err.message);
-      }
+      return;
+    }
+
+    try {
+      const formattedAnswers = Object.entries(applicationForm.answers).map(
+        ([qId, text]) => ({
+          question_id: parseInt(qId),
+          answer_text: text,
+        })
+      );
+
+      await applyToSchool(
+        school.id,
+        applicationForm.motivation,
+        formattedAnswers
+      );
+
+      alert(
+        "Candidature envoyée avec succès ! Retrouvez-la dans votre Dashboard."
+      );
+      setShowApplyModal(false);
+      setApplicationForm({ motivation: "", answers: {} });
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          err.message ||
+          "Erreur lors de la candidature"
+      );
     }
   };
 
@@ -478,7 +516,7 @@ const SchoolDetails = () => {
         </div>
 
         <button
-          onClick={handleApply}
+          onClick={handleOpenApply}
           style={{
             width: "100%",
             padding: "15px",
@@ -620,6 +658,161 @@ const SchoolDetails = () => {
           )}
         </div>
       </div>
+
+      {showApplyModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "25px",
+              borderRadius: "12px",
+              maxWidth: "600px",
+              width: "90%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <h2 style={{ marginTop: 0, color: "#007bff" }}>
+              Candidature : {school.first_name}
+            </h2>
+            <p>Complétez votre dossier pour postuler.</p>
+
+            <form onSubmit={submitApplication}>
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Lettre de motivation *
+                </label>
+                <textarea
+                  required
+                  style={{
+                    width: "100%",
+                    height: "120px",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #ccc",
+                    fontFamily: "inherit",
+                  }}
+                  value={applicationForm.motivation}
+                  onChange={(e) =>
+                    setApplicationForm({
+                      ...applicationForm,
+                      motivation: e.target.value,
+                    })
+                  }
+                  placeholder="Pourquoi voulez-vous rejoindre cette école ? Présentez-vous..."
+                />
+              </div>
+
+              {schoolQuestions.length > 0 && (
+                <div
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <h4
+                    style={{
+                      marginTop: 0,
+                      marginBottom: "15px",
+                      color: "#555",
+                    }}
+                  >
+                    Questions de l'école
+                  </h4>
+                  {schoolQuestions.map((q) => (
+                    <div key={q.id} style={{ marginBottom: "15px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "5px",
+                          fontSize: "0.95em",
+                        }}
+                      >
+                        {q.question_text}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          borderRadius: "5px",
+                          border: "1px solid #ddd",
+                        }}
+                        value={applicationForm.answers[q.id] || ""}
+                        onChange={(e) =>
+                          setApplicationForm({
+                            ...applicationForm,
+                            answers: {
+                              ...applicationForm.answers,
+                              [q.id]: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "15px", marginTop: "20px" }}>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 2,
+                    padding: "12px",
+                    background: "#28a745",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Envoyer mon dossier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowApplyModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    background: "#6c757d",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

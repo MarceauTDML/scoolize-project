@@ -56,8 +56,16 @@ export const getAllSchoolLocations = () => {
   return request("/schools/locations", "GET");
 };
 
-export const applyToSchool = (schoolId) => {
-  return request("/applications", "POST", { school_id: schoolId });
+export const getRecommendedSchools = () => {
+  return request('/schools/recommended', 'GET');
+};
+
+export const applyToSchool = (schoolId, motivationLetter, answers) => {
+  return request("/applications", "POST", { 
+    school_id: schoolId, 
+    motivation_letter: motivationLetter,
+    answers: answers
+  });
 };
 
 export const getStudentApplications = () => {
@@ -70,6 +78,18 @@ export const getMyApplications = () => {
 
 export const updateApplicationStatus = (applicationId, status) => {
   return request(`/applications/${applicationId}/status`, "PUT", { status });
+};
+
+export const getSchoolQuestions = (schoolId) => {
+  return request(`/schools/${schoolId}/questions`, "GET");
+};
+
+export const addSchoolQuestion = (question_text) => {
+  return request("/schools/questions", "POST", { question_text });
+};
+
+export const deleteSchoolQuestion = (questionId) => {
+  return request(`/schools/questions/${questionId}`, "DELETE");
 };
 
 export const getPendingSchools = () => {
@@ -173,8 +193,4 @@ export const getGrades = () => {
 
 export const getGradesByStudent = (studentId) => {
   return request(`/grades/student/${studentId}`, 'GET');
-};
-
-export const getRecommendedSchools = () => {
-  return request('/schools/recommended', 'GET');
 };
