@@ -13,8 +13,13 @@ import StudentProfile from './screens/student/StudentProfile';
 import StudentGrades from './screens/student/StudentGrades';
 
 import Navbar from './components/Navbar';
+import Chatbot from './components/Chatbot';
 
 function App() {
+  const isUserLoggedIn = () => {
+    return !!localStorage.getItem("token");
+  };
+
   return (
     <Router>
       <div className="App">
@@ -33,8 +38,11 @@ function App() {
             <Route path="/student-grades" element={<StudentGrades />} />
           </Routes>
         </div>
+
+        {isUserLoggedIn() && <Chatbot />}
       </div>
     </Router>
   );
 }
+
 export default App;

@@ -198,3 +198,7 @@ export const getGradesByStudent = (studentId) => {
 export const confirmApplication = (applicationId) => {
   return request(`/applications/${applicationId}/confirm`, "POST");
 };
+
+export const sendChatMessage = (message, history) => {
+  return request("/chatbot", "POST", { message, history });
+};

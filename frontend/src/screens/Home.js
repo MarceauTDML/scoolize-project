@@ -31,6 +31,8 @@ const Home = () => {
 
   const [inputPage, setInputPage] = useState(currentPage);
 
+  const isUserLoggedIn = () => !!localStorage.getItem("token");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -44,16 +46,20 @@ const Home = () => {
           type: currentType,
         });
 
-        if (response && response.data) {
-            setSchools(response.data);
+        let schoolsData = [];
+        if (Array.isArray(response)) {
+            schoolsData = response;
+            setTotalPages(1);
+            setTotalSchools(response.length);
+        } else if (response && response.data) {
+            schoolsData = response.data;
             if (response.pagination) {
                 setTotalPages(response.pagination.totalPages || 1);
                 setTotalSchools(response.pagination.totalSchools || response.data.length);
             }
-        } else {
-            setSchools([]);
         }
         
+        setSchools(schoolsData || []);
         setInputPage(currentPage);
 
         if (
@@ -82,7 +88,7 @@ const Home = () => {
             const favIds = await getFavoriteIds();
             setFavorites(new Set(favIds));
           } catch (err) {
-            console.error(err);
+            console.error("Erreur favoris", err);
           }
         }
 
@@ -151,9 +157,7 @@ const Home = () => {
   return (
     <div>
       <div style={{ marginBottom: "30px" }}>
-        <h1
-          style={{ margin: "0 0 10px 0", fontSize: "2rem", color: "#2c3e50" }}
-        >
+        <h1 style={{ margin: "0 0 10px 0", fontSize: "2rem", color: "#2c3e50" }}>
           Trouvez votre établissement
         </h1>
         <p style={{ color: "#666", fontSize: "1.1rem", margin: 0 }}>
@@ -260,9 +264,7 @@ const Home = () => {
       {schools.length === 0 ? (
         <div style={{ textAlign: "center", padding: "50px", color: "#666" }}>
           <h3>Aucun résultat trouvé</h3>
-          <p>
-            Essayez de modifier vos filtres.
-          </p>
+          <p>Essayez de modifier vos filtres.</p>
         </div>
       ) : (
         <div className="schools-grid">
@@ -304,7 +306,7 @@ const Home = () => {
                       boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                     }}
                   >
-                    ✨ Recommandé
+                    Recommandé
                   </div>
                 )}
 
@@ -350,9 +352,7 @@ const Home = () => {
                     justifyContent: "space-between",
                   }}
                 >
-                  <div
-                    style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
-                  >
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     {school.school_type && (
                       <span
                         style={{
