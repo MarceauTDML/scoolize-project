@@ -12,9 +12,11 @@ import StudentCalendar from './screens/StudentCalendar';
 import StudentProfile from './screens/student/StudentProfile';
 import StudentGrades from './screens/student/StudentGrades';
 import CalendarDetails from './screens/CalendarDetails';
+import Favorites from './screens/student/Favorites';
 
 import Navbar from './components/Navbar';
 import Chatbot from './components/Chatbot';
+import SideMenu from './components/SideMenu';
 
 function App() {
   const isUserLoggedIn = () => {
@@ -23,6 +25,7 @@ function App() {
 
   return (
     <Router>
+      <SideMenu />
       <div className="App">
         <Navbar />
         <div className="content-container">
@@ -32,6 +35,7 @@ function App() {
             <Route path="/school/:id" element={<SchoolDetails />} />
             <Route path="/map" element={<SchoolsMap />} />
             <Route path="/calendar" element={<StudentCalendar />} />
+            <Route path="/favorites" element={<Favorites />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
