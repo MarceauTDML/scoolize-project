@@ -125,11 +125,21 @@ button[type="submit"] {
 
 button:hover { background-color: #0056b3; }
 
+/* --- SECTON MODIFIÉE POUR LA GRILLE --- */
+
 .schools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+  /* Force exactement 2 colonnes égales (50% / 50%) */
+  grid-template-columns: repeat(2, 1fr);
   gap: 30px;
   margin-top: 30px;
+}
+
+/* Responsive : Sur mobile, on repasse à 1 colonne pour éviter d'écraser le contenu */
+@media (max-width: 768px) {
+  .schools-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .school-card {
@@ -139,6 +149,13 @@ button:hover { background-color: #0056b3; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   border-top: 5px solid #007bff;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  /* Ajouts pour uniformiser la hauteur des cartes */
+  height: 100%; 
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Pousse le bouton 'Voir la fiche' vers le bas si le texte est court */
+  box-sizing: border-box;
 }
 
 .school-card:hover {

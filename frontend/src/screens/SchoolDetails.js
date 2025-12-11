@@ -329,14 +329,6 @@ const SchoolDetails = () => {
           style={{ border: "0", borderTop: "1px solid #eee", margin: "20px 0" }}
         />
 
-        <div style={{ marginBottom: "20px" }}>
-          <h4 style={{ marginBottom: "10px" }}>À propos</h4>
-          <p style={{ lineHeight: "1.6", color: "#444" }}>
-            {school.description ||
-              "Aucune description disponible pour le moment."}
-          </p>
-        </div>
-
         {news.length > 0 && (
           <div style={{ marginBottom: "30px", marginTop: "30px" }}>
             <h3
