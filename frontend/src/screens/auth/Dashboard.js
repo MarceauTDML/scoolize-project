@@ -590,17 +590,6 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-
-          <h2>Mes Écoles Favorites ({myFavorites.length}) ❤️</h2>
-          <div className="schools-grid" style={{ marginTop: "20px" }}>
-              {myFavorites.map((fav) => (
-                <div key={fav.id} className="school-card" style={{ position: "relative" }}>
-                  <button onClick={() => handleRemoveFavorite(fav.id)} style={{ position: "absolute", top: "10px", right: "10px", border: "none", background: "transparent", cursor: "pointer", fontSize: "1.2rem" }}>❌</button>
-                  <h3 style={{ margin: "0 0 10px", minHeight: "50px" }}>{fav.first_name}</h3>
-                  <button onClick={() => navigate(`/school/${fav.id}`)} style={{ width: "100%", marginTop: "10px", padding: "10px", background: "#e9ecef", color: "#333", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "600" }}>Voir la fiche</button>
-                </div>
-              ))}
-          </div>
         </div>
       )}
     </div>
